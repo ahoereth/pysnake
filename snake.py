@@ -1,4 +1,5 @@
 import numpy as np
+from numpy import random as rand
 from matplotlib import animation, pyplot as plt
 import sys
 
@@ -11,42 +12,60 @@ dirs = {
 }
 
 
+MINSNAKELEN = 5
+SNAKE = 2
+FOOD = 1
+BG = 0
+
+
 class Snake:
     def __init__(self, figure, speed=50, listener=lambda: None):
         self.listener = listener
         self.fig = figure
-        self.size = 64
+        self.size = 32
         self.fig.canvas.mpl_connect('key_press_event', self.input)
         self.start()
-        self.img = plt.imshow(self.board, cmap='gray', vmin=0, vmax=2)
+        self.img = plt.imshow(self.board, cmap='gray_r', vmin=0, vmax=2)
         self.anim = animation.FuncAnimation(self.fig, self.step,
                                             interval=1100//speed, blit=True)
 
     def start(self):
-        self.board = np.ones((self.size, self.size))*255
-        self.head = (np.random.randint(0, self.size),
-                     np.random.randint(0, self.size))
-        self.body = [self.head]
+        self.board = np.ones((self.size, self.size)) * BG
+        self.board.flat[rand.randint(0, len(self.board) - 1)] = FOOD
+        self.body = [rand.randint(0, len(self.board) - 1)]
         self.dir = list(dirs.values())[np.random.randint(0, 4)]
 
     def step(self, i):
-        x, y = self.head
+        r, c = self.get_head(rc=True)
         if self.dir & 2:  # horizontal
-            x = x + ((self.dir & 1) * 2 - 1 % self.size)
+            c = (c + (self.dir & 1) * 2 - 1) % self.size
         else:  # vertical
-            y = y + ((self.dir & 1) * 2 - 1 % self.size)
-        if self.board[y, x] == 0:
+            r = (r + (self.dir & 1) * 2 - 1) % self.size
+        head = np.ravel_multi_index((r, c), self.board.shape)
+        if self.board.flat[head] == SNAKE:
             self.event('lost')
             self.start()
-        self.head = (x, y)
-        self.body.append(self.head)
-        self.board[y, x] = 0
-        if i % 2 == 0:  # cut of tail every second step
-            x, y = self.body.pop(0)
-            self.board[y, x] = 255
+        if self.board.flat[head] == FOOD:  # caught a special dot
+            food = rand.choice(np.flatnonzero(self.board == BG))
+            self.board.flat[food] = FOOD
+        elif len(self.body) > MINSNAKELEN:  # otherwise cut of tail
+            self.board.flat[self.body.pop(0)] = BG
+        self.body.append(head)
+        self.board.flat[head] = SNAKE
         self.img.set_data(self.board)
         self.event('highscore')
         return self.img,
+
+    def get_highscore(self):
+        return len(self.body) - MINSNAKELEN
+
+    def get_head(self, rc=False):
+        head = self.body[len(self.body) - 1]
+        return np.unravel_index(head, self.board.shape) if rc else head
+
+    def get_food(self, rc=False):
+        food = np.flatnonzero(self.body == FOOD)[0]
+        return np.unravel_index(food, self.board.shape) if rc else food
 
     def input(self, event):
         key = event.key.upper()
@@ -58,13 +77,14 @@ class Snake:
                 self.dir = direction
 
     def event(self, name):
-        self.listener(event=name, highscore=len(self.body),
-                      board=self.board, head=self.body[len(self.body)-1])
+        self.listener(event=name, highscore=self.get_highscore(),
+                      direction=self.dir, board=self.board,
+                      head=self.get_head())
 
 
 if __name__ == '__main__':
-    def listen(event, highscore, head, **args):
-        sys.stdout.write('\r%s | %s | %s' % (event, highscore, head))
+    def listen(event, highscore, head, direction, **args):
+        sys.stdout.write('\r%s | %s | %s' % (event, highscore, direction))
         if event == 'lost':
             sys.stdout.write('\n')
         sys.stdout.flush()
