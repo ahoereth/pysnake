@@ -3,6 +3,14 @@ from matplotlib import animation, pyplot as plt
 import sys
 
 
+dirs = {
+    'UP': 0b00,  # 00
+    'DOWN': 0b01,  # 01
+    'LEFT': 0b10,  # 10
+    'RIGHT': 0b11,  # 11
+}
+
+
 class Snake:
     def __init__(self, figure, listener=lambda: None):
         self.listener = listener
@@ -15,54 +23,37 @@ class Snake:
                                             interval=11, blit=True)
 
     def start(self):
-        self.body = []
         self.board = np.ones((self.size, self.size))*255
         self.x = np.random.randint(0, self.size)
         self.y = np.random.randint(0, self.size)
-        self.dir = ('up', 'down', 'left', 'right')[np.random.randint(0, 4)]
+        self.body = [(self.x, self.y)]
+        self.dir = list(dirs.values())[np.random.randint(0, 4)]
 
     def step(self, i):
-        getattr(self, self.dir)()
+        if self.dir & 2:  # horizontal
+            self.x = (self.x + ((self.dir & 1) * 2 - 1)) % self.size
+        else:  # vertical
+            self.y = (self.y + ((self.dir & 1) * 2 - 1)) % self.size
         if self.board[self.y, self.x] == 0:
             self.event('lost')
             self.start()
-        self.body.append((self.y, self.x))
+        self.body.append((self.x, self.y))
         self.board[self.y, self.x] = 0
         if i % 3 == 0:
-            taily, tailx = self.body.pop(0)
+            tailx, taily = self.body.pop(0)
             self.board[taily, tailx] = 255
         self.img.set_data(self.board)
         self.event('highscore')
         return self.img,
 
     def input(self, event):
-        # print('you pressed', event.key)
-        if event.key == 'escape':
-            self.escape()
-        if event.key in ('up', 'down', 'left', 'right'):
-            if (
-                (self.dir == 'up' and event.key == 'down') or
-                (self.dir == 'down' and event.key == 'up') or
-                (self.dir == 'right' and event.key == 'left') or
-                (self.dir == 'left' and event.key == 'right')
-            ):
-                return
-            self.dir = event.key
-
-    def up(self):
-        self.y = (self.y - 1) % self.size
-
-    def down(self):
-        self.y = (self.y + 1) % self.size
-
-    def left(self):
-        self.x = (self.x - 1) % self.size
-
-    def right(self):
-        self.x = (self.x + 1) % self.size
-
-    def escape(self):
-        sys.exit()
+        key = event.key.upper()
+        if key == 'ESCAPE':
+            sys.exit()
+        if key in dirs.keys():
+            direction = dirs[key]
+            if direction ^ 1 != self.dir:
+                self.dir = direction
 
     def event(self, name):
         self.listener(event=name, highscore=len(self.body), board=self.board)
