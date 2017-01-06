@@ -12,7 +12,7 @@ dirs = {
 
 
 class Snake:
-    def __init__(self, figure, listener=lambda: None):
+    def __init__(self, figure, speed=50, listener=lambda: None):
         self.listener = listener
         self.fig = figure
         self.size = 64
@@ -20,7 +20,7 @@ class Snake:
         self.start()
         self.img = plt.imshow(self.board, cmap='gray', vmin=0, vmax=2)
         self.anim = animation.FuncAnimation(self.fig, self.step,
-                                            interval=11, blit=True)
+                                            interval=1100//speed, blit=True)
 
     def start(self):
         self.board = np.ones((self.size, self.size))*255
@@ -65,5 +65,5 @@ if __name__ == '__main__':
     fig = plt.figure()
     size = 256
     plt.axis('off')
-    snake = Snake(fig, listen)
+    snake = Snake(fig, listener=listen)
     plt.show()
