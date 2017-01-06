@@ -56,12 +56,17 @@ class Snake:
                 self.dir = direction
 
     def event(self, name):
-        self.listener(event=name, highscore=len(self.body), board=self.board)
+        self.listener(event=name, highscore=len(self.body),
+                      board=self.board, head=self.body[len(self.body)-1])
 
 
 if __name__ == '__main__':
-    def listen(event, highscore):
-        print(event, highscore)
+    def listen(event, highscore, head, **args):
+        sys.stdout.write('\r%s | %s | %s' % (event, highscore, head))
+        if event == 'lost':
+            sys.stdout.write('\n')
+        sys.stdout.flush()
+
     fig = plt.figure()
     size = 256
     plt.axis('off')
