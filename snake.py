@@ -24,24 +24,26 @@ class Snake:
 
     def start(self):
         self.board = np.ones((self.size, self.size))*255
-        self.x = np.random.randint(0, self.size)
-        self.y = np.random.randint(0, self.size)
-        self.body = [(self.x, self.y)]
+        self.head = (np.random.randint(0, self.size),
+                     np.random.randint(0, self.size))
+        self.body = [self.head]
         self.dir = list(dirs.values())[np.random.randint(0, 4)]
 
     def step(self, i):
+        x, y = self.head
         if self.dir & 2:  # horizontal
-            self.x = (self.x + ((self.dir & 1) * 2 - 1)) % self.size
+            x = x + ((self.dir & 1) * 2 - 1 % self.size)
         else:  # vertical
-            self.y = (self.y + ((self.dir & 1) * 2 - 1)) % self.size
-        if self.board[self.y, self.x] == 0:
+            y = y + ((self.dir & 1) * 2 - 1 % self.size)
+        if self.board[y, x] == 0:
             self.event('lost')
             self.start()
-        self.body.append((self.x, self.y))
-        self.board[self.y, self.x] = 0
-        if i % 3 == 0:
-            tailx, taily = self.body.pop(0)
-            self.board[taily, tailx] = 255
+        self.head = (x, y)
+        self.body.append(self.head)
+        self.board[y, x] = 0
+        if i % 2 == 0:  # cut of tail every second step
+            x, y = self.body.pop(0)
+            self.board[y, x] = 255
         self.img.set_data(self.board)
         self.event('highscore')
         return self.img,
