@@ -21,12 +21,14 @@ def initialize_gen(individuals):
     '''
     return None
 
+
 def play_snake(gen):
     perf = None
     for individual in gen:
         #play the game and calculate performance
         print('playing ..')
     return perf
+
 
 def get_next_gen(parent, performance):
     '''
@@ -39,6 +41,7 @@ def get_next_gen(parent, performance):
     '''
     next_gen = None
     return next_gen
+
 
 if __name__ == '__main__':
     max_gens = 100 #how many generations do we want to train?
