@@ -1,25 +1,25 @@
+
 import numpy as np
 from numpy import random as rand
+from snake_controller import SnakeKeyboard
 import matplotlib
 matplotlib.use('tkAgg')
 from matplotlib import pyplot as plt
-import sys
-
-
-actions = {
-    'UP': 0b00,  # 00
-    'DOWN': 0b01,  # 01
-    'LEFT': 0b10,  # 10
-    'RIGHT': 0b11,  # 11
-}
 
 
 SNAKE = 2
 FOOD = 1
 BG = 0
 
-
 class Snake:
+
+    actions = {
+        'UP': 0b00,  # 00
+        'DOWN': 0b01,  # 01
+        'LEFT': 0b10,  # 10
+        'RIGHT': 0b11,  # 11
+    }
+
     def __init__(self, size=8, onstep=lambda x: x):
         self.onstep = onstep
         self.size = size
@@ -30,11 +30,11 @@ class Snake:
         self.body = [rand.randint(0, len(self.board) - 1)]
         self.board.flat[self.body[0]] = SNAKE
         self.board.flat[rand.choice(np.flatnonzero(self.board == BG))] = FOOD
-        self.dir = list(actions.values())[np.random.randint(0, 4)]
+        self.dir = list(self.actions.values())[np.random.randint(0, 4)]
         print(self.dir)
 
     def step(self, direction=None):
-        if direction in actions.values() and direction ^ 1 != self.dir:
+        if direction in self.actions.values() and direction ^ 1 != self.dir:
             self.dir = direction
         else:
             direction = self.dir
@@ -47,10 +47,16 @@ class Snake:
 
         head = np.ravel_multi_index((r, c), self.board.shape)
         if self.board.flat[head] == SNAKE:  # died
+            print('You lost terribly... :(')
             return -1
 
         if self.board.flat[head] == FOOD:  # caught a special dot
-            food = rand.choice(np.flatnonzero(self.board == BG))
+            #check win condition
+            new_location = np.flatnonzero(self.board == BG)
+            if(len(new_location) == 0):
+                print('You won the game!! :)')
+                return 1
+            food = rand.choice(new_location)
             self.board.flat[food] = FOOD
         elif len(self.body) > self.minsnakelen:  # otherwise cut of tail
             self.board.flat[self.body.pop(0)] = BG
@@ -59,7 +65,7 @@ class Snake:
         self.body.append(head)
         self.board.flat[head] = SNAKE
         self.onstep(board=self.board)
-        return self.steps
+        return 0
 
     def get_highscore(self):
         return len(self.body) - self.minsnakelen
@@ -84,21 +90,6 @@ class SnakeUI:
             self.img = plt.imshow(board, cmap='gray_r', vmin=0, vmax=2)
         self.img.set_data(board)
         plt.draw()
-
-
-class SnakeKeyboard:
-    def __init__(self, snake, ui):
-        self.snake = snake
-        ui.fig.canvas.mpl_connect('key_press_event', self.keypress)
-        plt.show()
-
-    def keypress(self, event):
-        key = (event.key or '').upper()
-        if key == 'ESCAPE':
-            sys.exit()
-        if key in actions.keys():
-            if self.snake.step(actions[key]) == -1:
-                sys.exit()
 
 
 if __name__ == '__main__':
