@@ -1,5 +1,7 @@
 import numpy as np
 from numpy import random as rand
+import matplotlib
+matplotlib.use('tkAgg')
 from matplotlib import animation, pyplot as plt
 import sys
 import threading
