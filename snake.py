@@ -5,7 +5,7 @@ import sys
 import threading
 
 
-dirs = {
+actions = {
     'UP': 0b00,  # 00
     'DOWN': 0b01,  # 01
     'LEFT': 0b10,  # 10
@@ -20,13 +20,17 @@ BG = 0
 
 
 class Snake:
-    def __init__(self, figure, speed=50, viz=True, listener=lambda: None):
+    def __init__(
+        self, figure, speed=50, viz=True, listener=lambda: None,
+        restart=False,
+    ):
         self.listener = listener
         self.fig = figure
-        self.size = 32
+        self.size = 8
         self.start()
         self.viz = viz
         self.speed = speed
+        self.restart = restart
         if viz:
             self.fig.canvas.mpl_connect('key_press_event', self.keypress)
             self.img = plt.imshow(self.board, cmap='gray_r', vmin=0, vmax=2)
@@ -41,11 +45,12 @@ class Snake:
     def start(self):
         self.steps = 0
         self.board = np.ones((self.size, self.size)) * BG
-        self.board.flat[rand.randint(0, len(self.board) - 1)] = FOOD
         self.body = [rand.randint(0, len(self.board) - 1)]
-        self.dir = list(dirs.values())[np.random.randint(0, 4)]
+        food = rand.choice(np.flatnonzero(self.board == BG))
+        self.board.flat[food] = FOOD
+        self.dir = list(actions.values())[np.random.randint(0, 4)]
 
-    def step(self, **args):
+    def step(self, *args):
         self.steps += 1
         r, c = self.get_head(rc=True)
         if self.dir & 2:  # horizontal
@@ -55,7 +60,8 @@ class Snake:
         head = np.ravel_multi_index((r, c), self.board.shape)
         if self.board.flat[head] == SNAKE:
             self.event('lost')
-            self.start()
+            if self.restart:
+                self.start()
         if self.board.flat[head] == FOOD:  # caught a special dot
             food = rand.choice(np.flatnonzero(self.board == BG))
             self.board.flat[food] = FOOD
@@ -82,16 +88,16 @@ class Snake:
         food = np.flatnonzero(self.body == FOOD)[0]
         return np.unravel_index(food, self.board.shape) if rc else food
 
-    def set_direction(self, direction):
-        if direction in dirs.values() and direction ^ 1 != self.dir:
+    def act(self, direction):
+        if direction in actions.values() and direction ^ 1 != self.dir:
             self.dir = direction
 
     def keypress(self, event):
         key = (event.key or '').upper()
         if key == 'ESCAPE':
             sys.exit()
-        if key in dirs.keys():
-            self.set_direction(dirs[key])
+        if key in actions.keys():
+            self.act(actions[key])
 
     def event(self, name):
         self.listener(event=name, highscore=self.get_highscore(),
@@ -100,8 +106,8 @@ class Snake:
 
 
 if __name__ == '__main__':
-    def listen(event, highscore, head, direction, **args):
-        sys.stdout.write('\r%s | %s | %s' % (event, highscore, direction))
+    def listen(event, highscore, steps, **args):
+        sys.stdout.write('\r%s | %s | %s' % (event, highscore, steps))
         if event == 'lost':
             sys.stdout.write('\n')
         sys.stdout.flush()
@@ -109,5 +115,5 @@ if __name__ == '__main__':
     fig = plt.figure()
     size = 256
     plt.axis('off')
-    snake = Snake(fig, listener=listen)
+    snake = Snake(fig, speed=10, listener=listen)
     plt.show()
