@@ -24,7 +24,7 @@ class Snake:
         if direction ^ 1 != self.dir:
             self.dir = direction
 
-        r, c = self.get_head()
+        r, c = self.head
         if self.dir & 2:  # horizontal
             c = (c + (self.dir & 1) * 2 - 1) % self.size
         else:  # vertical
@@ -49,14 +49,17 @@ class Snake:
         self.board.flat[head] = SNAKE
         return 0
 
-    def get_highscore(self):
+    @property
+    def highscore(self):
         return len(self.body) - self.minsnakelen
 
-    def get_head(self, rc=True):
+    @property
+    def head(self, rc=True):
         head = self.body[len(self.body) - 1]
         return np.unravel_index(head, self.board.shape) if rc else head
 
-    def get_food(self, rc=True):
+    @property
+    def food(self, rc=True):
         food = np.flatnonzero(self.body == FOOD)[0]
         return np.unravel_index(food, self.board.shape) if rc else food
 

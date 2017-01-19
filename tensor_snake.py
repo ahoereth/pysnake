@@ -1,58 +1,44 @@
-"""
-Aim: we want to find a feedforward net that plays snake.
-How: the agents are optimized with genetic algorithms and not standard tf backpropagation. PseudoCode for this
-would look roughly like this:
+from multiprocessing import Pool
 
-1) initialize population
-2) let each of the individuals play a certain number of games
-3) most performand individuals (based on the highscore) pass on to the next generation
-4) produce offsprings and new individuals
-5) go to 2
+import tensorflow as tf
 
-The process is repeated for a certain number of generations
-"""
+from snake import Snake
+
+MAX_STEPS = 100
+
 
 class TensorSnake:
     def __init__(self, weights, size=4):
         self.snake = Snake(size)
+        self.weights = weights
 
-def initialize_gen(individuals):
-    """
-    Randomly generates networks that control the player(snake) in the game.
+    def init_network(self):
+        board = tf.placeholder(tf.float32)  # Adjust dimension here
+        action = tf.constant(2)
+        # build network here
+        return board, action
 
-    :param individuals: the number of individuals that should be created
-    :return: the individuals
-    """
-    return None
+    def __call__(self):
+        # run session here and return results
+        board, action = self.init_network()
+        with tf.Session() as sess:
+            sess.run(tf.global_variables_initializer())
+            for i in range(10):
+                my_action = sess.run(action, feed_dict={
+                                                board: 0  # self.snake.board
+                                             })
+                self.snake.step(my_action)
+
+        return self.weights, self.snake.highscore, self.snake.steps
 
 
-def play_snake(gen):
-    perf = None
-    for individual in gen:
-        #play the game and calculate performance
-        print('playing ..')
-    return perf
-
-
-def get_next_gen(parent, performance):
-    """
-    Produces the next generation of controller networks from the given networks
-    and their performance
-
-    :param parent: the parent generation from which the offsprings are produced
-    :param performance: the performance value per individual
-    :return: the next generation of networks
-    """
-    next_gen = None
-    return next_gen
+def play_snake(snake):
+    return snake()
 
 
 if __name__ == '__main__':
-    max_gens = 100 #how many generations do we want to train?
-    max_ind = 20   #how many individuals do we have per generation?
+    max_gens = 100  # how many generations do we want to train?
+    max_ind = 6    # how many individuals do we have per generation?
 
-    cur_gen = initialize_gen(max_ind)
-
-    for gen in range(max_gens):
-        perf = play_snake(cur_gen)
-        cur_gen = get_next_gen(cur_gen, perf)
+    with Pool(5) as p:
+        print(p.map(play_snake, [TensorSnake(i) for i in range(max_ind)]))
