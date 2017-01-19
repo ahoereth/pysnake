@@ -49,7 +49,8 @@ class SnakeUI(animation.TimedAnimation):
         axes.set_xlim([-0.5, self.snake.board.shape[1] - 0.5])
         axes.set_ylim([self.snake.board.shape[0] - 0.5, -0.5])
         axes.set_aspect('equal')
-        axes.axis('off')
+        axes.get_xaxis().set_visible(False)
+        axes.get_yaxis().set_visible(False)
 
         axesImage = image.AxesImage(axes, cmap='gray_r', interpolation='none')
         axesImage.set_clim(np.min(self.snake.board), np.max(self.snake.board))
