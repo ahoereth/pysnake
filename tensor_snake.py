@@ -1,4 +1,4 @@
-'''
+"""
 Aim: we want to find a feedforward net that plays snake.
 How: the agents are optimized with genetic algorithms and not standard tf backpropagation. PseudoCode for this
 would look roughly like this:
@@ -10,15 +10,19 @@ would look roughly like this:
 5) go to 2
 
 The process is repeated for a certain number of generations
-'''
+"""
+
+class TensorSnake:
+    def __init__(self, weights, size=4):
+        self.snake = Snake(size)
 
 def initialize_gen(individuals):
-    '''
+    """
     Randomly generates networks that control the player(snake) in the game.
 
     :param individuals: the number of individuals that should be created
     :return: the individuals
-    '''
+    """
     return None
 
 
@@ -31,14 +35,14 @@ def play_snake(gen):
 
 
 def get_next_gen(parent, performance):
-    '''
+    """
     Produces the next generation of controller networks from the given networks
     and their performance
 
     :param parent: the parent generation from which the offsprings are produced
     :param performance: the performance value per individual
     :return: the next generation of networks
-    '''
+    """
     next_gen = None
     return next_gen
 
