@@ -5,6 +5,7 @@ import tensorflow as tf
 
 from snake import Snake
 
+
 MAX_GAME_STEPS = 100
 MAX_INDIVIDUALS = 5
 MAX_GENERATIONS = 1  # 00
@@ -12,18 +13,19 @@ NUM_POOLS = 4
 
 
 class TensorSnake:
-
-    def __init__(self, snake, weights):
+    def __init__(self, snake, weights=False):
         """Initializes a TensorFlow graph to play snake."""
         self.snake = snake
         self.weights = weights
+        if not weights:
+            size = snake.size**2
+            self.weights = np.random.random((size, 4)).astype(np.float32)
 
     def init_network(self):
-
-        board = tf.placeholder(tf.float32, [None,self.snake.board.size])
+        board = tf.placeholder(tf.float32, (None, self.snake.board.size))
         # build network here
         w1 = tf.Variable(self.weights, name='weights')
-        b = tf.Variable(tf.ones([4]))
+        b = tf.Variable(tf.ones((4)))
         output_layer = tf.nn.relu_layer(board, w1, b, name='output')
         action = tf.argmax(tf.nn.softmax(output_layer), 1)
         return board, action
@@ -34,10 +36,8 @@ class TensorSnake:
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             for i in range(MAX_GAME_STEPS):
-                my_action = sess.run(action, feed_dict={
-                                                board: [self.snake.board.flatten().astype(np.float32)]
-                                             })
-                if self.snake.step(my_action) == -1:
+                act = sess.run(action, {board: [self.snake.board.flatten()]})
+                if self.snake.step(act) == -1:
                     break
 
         return self.weights, self.snake.highscore, self.snake.steps
@@ -50,8 +50,7 @@ def play_snake(snake):
 
 class SnakeTrainer:
     def generate_snakes(self, number):
-        return [TensorSnake(Snake(), np.random.random([16,4]).astype(np.float32))
-                for i in range(number)]
+        return (TensorSnake(Snake()) for i in range(number))
 
 
 if __name__ == '__main__':

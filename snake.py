@@ -1,6 +1,7 @@
 import numpy as np
 from numpy import random as rand
 
+
 SNAKE = 2
 FOOD = 1
 BG = 0
@@ -21,7 +22,7 @@ class Snake:
         self.minsnakelen = 5
 
         self.steps = 0
-        self.board = np.ones((self.size, self.size)) * BG
+        self.board = np.ones((self.size, self.size), dtype=np.float32) * BG
         self.body = [rand.randint(0, len(self.board) - 1)]
         self.board.flat[self.body[0]] = SNAKE
         self.board.flat[rand.choice(np.flatnonzero(self.board == BG))] = FOOD
