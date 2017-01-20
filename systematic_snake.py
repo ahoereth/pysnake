@@ -16,6 +16,8 @@ class SystematicSnake:
     def __init__(self, snake, ui):
         self.snake = snake
         self.max_y, self.max_x = self.snake.board.shape
+        self.timer = ui.fig.canvas.new_timer(500, [(self, [], {})])
+        self.timer.start()
 
     def __call__(self):
         """
@@ -68,7 +70,7 @@ class SystematicSnake:
 
 
 if __name__ == '__main__':
-    snake = Snake()
+    snake = Snake(10)
     ui = SnakeUI(snake)
     SystematicSnake(snake, ui)
     plt.show()
