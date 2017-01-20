@@ -32,7 +32,7 @@ class TensorSnake:
         # run session here and return results
         board, action = self.init_network()
         with tf.Session() as sess:
-            sess.run(tf.initialize_all_variables())
+            sess.run(tf.global_variables_initializer())
             for i in range(MAX_GAME_STEPS):
                 my_action = sess.run(action, feed_dict={
                                                 board: [self.snake.board.flatten().astype(np.float32)]
