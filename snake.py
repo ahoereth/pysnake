@@ -7,8 +7,16 @@ BG = 0
 
 
 class Snake:
+    """A snake simulation."""
 
     def __init__(self, size=4):
+        """Initializes a random square board of size size.
+
+        Generates one snake and one food position.
+
+        Args:
+            size: the size of the board sides.
+        """
         self.size = size
         self.minsnakelen = 5
 
@@ -19,7 +27,25 @@ class Snake:
         self.board.flat[rand.choice(np.flatnonzero(self.board == BG))] = FOOD
         self.dir = np.random.randint(0, 4)
 
-    def step(self, direction=None):
+    def step(self, direction=0):
+        """Moves the snake into the specified direction.
+
+        Appends a new snake marker in front and removes the last,
+        if the snake would be longer than its maximum length.
+        If food is consumed, the maximum length is increased by 1 and
+        a new food is spawned.
+
+        Checks if the snake wins or bites itself.
+
+        Args:
+            direction: The direction to move to as int.
+                       1: up, 2: down, 3: left, 4: right
+
+        Returns:
+             1 if winning
+            -1 if losing
+             0 else
+        """
         direction = abs(direction) % 4
         if direction ^ 1 != self.dir:
             self.dir = direction
@@ -51,15 +77,31 @@ class Snake:
 
     @property
     def highscore(self):
+        """The highscore is the number of foods eaten."""
         return len(self.body) - self.minsnakelen
 
     @property
     def head(self, rc=True):
+        """Returns the current head position of the snake.
+
+        Args:
+            rc: True to return row and column (2D) coordinates.
+
+        Return:
+            2D coordinates if rc is True, otherwise 1D coordinate
+        """
         head = self.body[len(self.body) - 1]
         return np.unravel_index(head, self.board.shape) if rc else head
 
     @property
     def food(self, rc=True):
+        """Returns the position of the current food item.
+
+        Args:
+            rc: True to return row and column (2D) coordinates.
+
+        Return:
+            2D coordinates if rc is True, otherwise 1D coordinate
+        """
         food = np.flatnonzero(self.body == FOOD)[0]
         return np.unravel_index(food, self.board.shape) if rc else food
-

@@ -1,19 +1,25 @@
 from multiprocessing import Pool
 
+import numpy as np
 import tensorflow as tf
 
 from snake import Snake
 
-MAX_STEPS = 100
+MAX_GAME_STEPS = 100
+MAX_INDIVIDUALS = 20
+MAX_GENERATIONS = 1  # 00
+NUM_POOLS = 4
 
 
 class TensorSnake:
-    def __init__(self, weights, size=4):
-        self.snake = Snake(size)
+
+    def __init__(self, snake, weights):
+        """Initializes a TensorFlow graph to play snake."""
+        self.snake = snake
         self.weights = weights
 
     def init_network(self):
-        board = tf.placeholder(tf.float32)  # Adjust dimension here
+        board = tf.placeholder(tf.float32, self.snake.board.shape)
         action = tf.constant(2)
         # build network here
         return board, action
@@ -23,9 +29,9 @@ class TensorSnake:
         board, action = self.init_network()
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            for i in range(10):
+            for i in range(MAX_GAME_STEPS):
                 my_action = sess.run(action, feed_dict={
-                                                board: 0  # self.snake.board
+                                                board: self.snake.board
                                              })
                 self.snake.step(my_action)
 
@@ -33,12 +39,23 @@ class TensorSnake:
 
 
 def play_snake(snake):
+    """Plays snake with the given snake."""
     return snake()
 
 
-if __name__ == '__main__':
-    max_gens = 100  # how many generations do we want to train?
-    max_ind = 6    # how many individuals do we have per generation?
+class SnakeTrainer:
+    def generate_snakes(self, number):
+        return [TensorSnake(Snake(), np.random.random(20))
+                for i in range(number)]
 
-    with Pool(5) as p:
-        print(p.map(play_snake, [TensorSnake(i) for i in range(max_ind)]))
+
+if __name__ == '__main__':
+    trainer = SnakeTrainer()
+    tensor_snakes = trainer.generate_snakes(MAX_INDIVIDUALS)
+
+    for i in range(MAX_GENERATIONS):
+        with Pool(NUM_POOLS) as p:
+            results = p.map(play_snake, tensor_snakes)
+
+    for w, h, s in results:
+        print(h, s)
