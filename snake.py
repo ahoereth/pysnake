@@ -68,7 +68,7 @@ class Snake:
                 return 1
             food = rand.choice(new_location)
             self.board.flat[food] = FOOD
-        elif len(self.body) > self.minsnakelen:  # otherwise cut of tail
+        elif len(self.body) > self.minsnakelen:  # otherwise cut off tail
             self.board.flat[self.body.pop(0)] = BG
 
         self.steps += 1

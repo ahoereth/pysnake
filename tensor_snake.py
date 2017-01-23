@@ -5,11 +5,16 @@ import tensorflow as tf
 
 from snake import Snake
 
+BOARD_SIZE = 4
+DIRECTIONS = 4
 
 MAX_GAME_STEPS = 100
 MAX_INDIVIDUALS = 5
 MAX_GENERATIONS = 1  # 00
+
 NUM_POOLS = 4
+
+PRECISION = np.float64
 
 
 class TensorSnake:
@@ -22,10 +27,9 @@ class TensorSnake:
             self.weights = np.random.random((size, 4)).astype(np.float32)
 
     def init_network(self):
-        board = tf.placeholder(tf.float32, (None, self.snake.board.size))
-        # build network here
+        board = tf.placeholder(tf.float64, [None, self.snake.board.size])
         w1 = tf.Variable(self.weights, name='weights')
-        b = tf.Variable(tf.ones((4)))
+        b = tf.Variable(tf.ones([DIRECTIONS], dtype=tf.float64))
         output_layer = tf.nn.relu_layer(board, w1, b, name='output')
         action = tf.argmax(tf.nn.softmax(output_layer), 1)
         return board, action
@@ -50,7 +54,9 @@ def play_snake(snake):
 
 class SnakeTrainer:
     def generate_snakes(self, number):
-        return (TensorSnake(Snake()) for i in range(number))
+        snake = Snake(BOARD_SIZE)
+        weights = np.random.random([BOARD_SIZE ** 2, DIRECTIONS])
+        return [TensorSnake(snake, weights) for i in range(number)]
 
 
 if __name__ == '__main__':
