@@ -24,15 +24,18 @@ class EvolveSnake:
     def __init__(self, snake, weights=None):
         """Initializes a TensorFlow graph to play snake."""
         self.snake = snake
+        self.layers = [self.snake.board.size + 1, 5, DIRECTIONS]
         self.weights = weights
         if self.weights is None:
-            size = self.snake.board.size + 1  # for bias term
-            self.weights = np.random.random((size, DIRECTIONS))
+            self.weights = [np.random.random((size, self.layers[i+1]))
+                            for i, size in enumerate(self.layers[:-1])]
 
     def init_network(self):
-        board = tf.placeholder(PRECISION, [None, self.weights.size/DIRECTIONS])
-        w1 = tf.Variable(self.weights, name='weights')
-        output_layer = tf.nn.relu(tf.matmul(board, w1), name='output')
+        board = tf.placeholder(PRECISION, (None, self.layers[0]))
+        w1 = tf.Variable(self.weights[0], name='hidden_weights')
+        h1 = tf.nn.relu(tf.matmul(board, w1), name='hidden_layer')
+        w2 = tf.Variable(self.weights[1], name='output_weights')
+        output_layer = tf.nn.relu(tf.matmul(h1, w2), name='output')
         action = tf.argmax(tf.nn.softmax(output_layer), 1)
         return board, action
 
@@ -59,14 +62,14 @@ class SnakeTrainer:
         if weights is None:
             snakes = [EvolveSnake(Snake(BOARD_SIZE)) for i in range(number)]
         else:
-            snakes = [EvolveSnake(Snake(BOARD_SIZE),weight) for weight in weights]
+            snakes = [EvolveSnake(Snake(BOARD_SIZE), weight) for weight in weights]
         return snakes
 
 
     def get_offsprings(self, parents):
         babies = []
-        for a, b in itertools.combinations(parents, 2):
-            baby = (a+b)/2
+        for mum, dad in itertools.combinations(parents, 2):
+            baby = [(a+b)/2 for a, b in zip(mum, dad)]
             babies.append(baby)
         return babies
 
