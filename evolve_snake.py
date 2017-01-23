@@ -17,12 +17,12 @@ NUM_POOLS = 4
 PRECISION = np.float64
 
 
-class TensorSnake:
-    def __init__(self, snake, weights=False):
+class EvolveSnake:
+    def __init__(self, snake, weights=None):
         """Initializes a TensorFlow graph to play snake."""
         self.snake = snake
         self.weights = weights
-        if not weights:
+        if self.weights is None:
             size = snake.size**2
             self.weights = np.random.random((size, 4)).astype(np.float32)
 
@@ -56,7 +56,7 @@ class SnakeTrainer:
     def generate_snakes(self, number):
         snake = Snake(BOARD_SIZE)
         weights = np.random.random([BOARD_SIZE ** 2, DIRECTIONS])
-        return [TensorSnake(snake, weights) for i in range(number)]
+        return [EvolveSnake(snake, weights) for i in range(number)]
 
 
 if __name__ == '__main__':
