@@ -32,11 +32,13 @@ class EvolveSnake:
 
     def init_network(self):
         board = tf.placeholder(PRECISION, (None, self.layers[0]))
-        w1 = tf.Variable(self.weights[0], name='hidden_weights')
-        h1 = tf.nn.relu(tf.matmul(board, w1), name='hidden_layer')
-        w2 = tf.Variable(self.weights[1], name='output_weights')
-        output_layer = tf.nn.relu(tf.matmul(h1, w2), name='output')
-        action = tf.argmax(tf.nn.softmax(output_layer), 1)
+        layers = [board]
+        for i, w in enumerate(self.weights):
+            weights = tf.Variable(w, name='weights_%s' % i)
+            layers.append(
+                tf.nn.relu(tf.matmul(layers[-1], weights), name='layer_%s' % i)
+            )
+        action = tf.argmax(tf.nn.softmax(layers[-1]), 1)
         return board, action
 
     def __call__(self):
