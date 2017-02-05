@@ -2,6 +2,7 @@ import numpy as np
 from numpy import random as rand
 
 
+HEAD = 3
 SNAKE = 2
 FOOD = 1
 BG = 0
@@ -10,7 +11,7 @@ BG = 0
 class Snake:
     """A snake simulation."""
 
-    def __init__(self, size=4):
+    def __init__(self, size=4, markhead=False):
         """Initializes a random square board of size size.
 
         Generates one snake and one food position.
@@ -20,15 +21,16 @@ class Snake:
         """
         self.size = size
         self.minsnakelen = 5
+        self.markhead = markhead
 
         self.steps = 0
         self.board = np.ones((self.size, self.size)) * BG
         self.body = [rand.randint(0, len(self.board) - 1)]
-        self.board.flat[self.body[0]] = SNAKE
+        self.board.flat[self.body[0]] = SNAKE if not self.markhead else HEAD
         self.board.flat[rand.choice(np.flatnonzero(self.board == BG))] = FOOD
         self.dir = np.random.randint(0, 4)
 
-    def step(self, direction=0):
+    def step(self, direction=None):
         """Moves the snake into the specified direction.
 
         Appends a new snake marker in front and removes the last,
@@ -47,9 +49,14 @@ class Snake:
             -1 if losing
              0 else
         """
+        if direction is None:
+            direction = self.dir
         direction = abs(direction) % 4
         if direction ^ 1 != self.dir:
             self.dir = direction
+
+        if self.markhead:
+            self.board[self.head] = SNAKE
 
         r, c = self.head
         if self.dir & 2:  # horizontal
@@ -73,7 +80,7 @@ class Snake:
 
         self.steps += 1
         self.body.append(head)
-        self.board.flat[head] = SNAKE
+        self.board.flat[head] = SNAKE if not self.markhead else HEAD
         return 0
 
     @property
@@ -91,7 +98,7 @@ class Snake:
         Return:
             2D coordinates if rc is True, otherwise 1D coordinate
         """
-        head = self.body[len(self.body) - 1]
+        head = self.body[-1]
         return np.unravel_index(head, self.board.shape) if rc else head
 
     @property
