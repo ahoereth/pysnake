@@ -43,6 +43,10 @@ Q_Graph = namedtuple('Q_Graph', [
 ])
 
 
+def flatten(l):
+    return [j for i in l for j in i]
+
+
 class Q_Snake:
     def __init__(self, checkpoint=None):
         self.checkpoint = checkpoint
@@ -87,18 +91,18 @@ class Q_Snake:
             last_highscore = 0
             for _ in range(MAX_GAME_STEPS):
                 state = np.copy(game.board)
-                qs, = self.session.run(self.graph.out_q, {
-                    self.graph.state: [state],
-                })
+                qs, action = flatten(self.session.run(
+                    [self.graph.out_q, self.graph.action],
+                    {self.graph.state: [state]}
+                ))
 
-                # Select an action a
+                # Maybe take a random action instead.
+                # TODO: Move this to tensorflow?
                 if np.random.rand(1) < random_action_probability:
-                    act = np.random.randint(0, ACTIONS)
-                else:
-                    act = np.argmax(qs)
+                    action = np.random.randint(0, ACTIONS)
 
                 # Carry out action
-                game_state = game.step(act)
+                game_state = game.step(action)
                 state_new = np.copy(game.board)
 
                 # Observe reward
@@ -106,10 +110,11 @@ class Q_Snake:
                     reward = 1
                     last_highscore = game.highscore
                 else:
-                    reward = game_state # -0.25 if snake_state == 0 else -1
+                    reward = game_state  # -0.25 if snake_state == 0 else -1
 
                 # Store in replay memory
-                memory.append((state, act, reward, state_new))
+                # TODO: Store memory in tensorflow.
+                memory.append((state, action, reward, state_new))
 
                 # Did we see enough moves to start learning?
                 if len(memory) == memory.maxlen:
@@ -153,9 +158,10 @@ class Q_Snake:
                 random_action_probability -= (1/epochs)
 
     def get_action(self, state):
-        return self.session.run(self.graph.action, {
+        action, = self.session.run(self.graph.action, {
             self.graph.state: state,
-        })[0]
+        })
+        return action
 
 
 def play(checkpoint):
