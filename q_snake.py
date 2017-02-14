@@ -172,9 +172,16 @@ class Q_Snake:
                 random_action_probability -= (1/epochs)
 
     def get_action(self, state):
+        try:
+            self.state_old
+        except:
+            self.state_old = np.zeros(state.shape)
+
         action, = self.session.run(self.graph.action, {
-            self.graph.state: state,
+            self.graph.x: [state * 2 - self.state_old],
         })
+
+        self.state_old = np.copy(state)
         return action
 
 
@@ -187,7 +194,7 @@ def play(checkpoint=None):
     game = Snake(BOARD_SIZE)
 
     def step():
-        ret = game.step(player.get_action([game.board]))
+        ret = game.step(player.get_action(game.board))
         if ret:
             print('You {}'.format('win' if ret > 0 else 'lose'))
             return 0
