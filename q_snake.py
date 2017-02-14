@@ -46,7 +46,7 @@ def dens_layer(x, shape, act_func=None):
 
 
 Q_Graph = namedtuple('Q_Graph', [
-    'x', 'target_q', 'out_q', 'max_q', 'action', 'train',
+    'x', 'q_target', 'q', 'q_max', 'action', 'train',
 ])
 
 
@@ -68,7 +68,7 @@ class Q_Snake:
 
     def _model(self):
         x = tf.placeholder(tf.float32, (None, BOARD_SIZE, BOARD_SIZE))
-        target_q = tf.placeholder(tf.float32, (None, 4))
+        q_target = tf.placeholder(tf.float32, (None, 4))
 
         net = tf.reshape(x, (-1, BOARD_SIZE, BOARD_SIZE, 1))  # for conv
         net = net / tf.reduce_max(net)  # let input range from 0 to 1
@@ -78,14 +78,14 @@ class Q_Snake:
         net = tf.reshape(net, (-1, BOARD_SIZE * BOARD_SIZE * 12))
         net = dens_layer(net, (BOARD_SIZE * BOARD_SIZE * 12, 1024), tf.nn.relu)
 
-        out_q = dens_layer(net, (1024, 4))
-        max_q = tf.reduce_max(out_q, axis=1)
-        action = tf.argmax(out_q, axis=1)
+        q = dens_layer(net, (1024, 4))
+        q_max = tf.reduce_max(q, axis=1)
+        action = tf.argmax(q, axis=1)
 
-        loss = tf.reduce_mean(tf.square(target_q - out_q))
+        loss = tf.reduce_mean(tf.square(q_target - q))
         train = tf.train.RMSPropOptimizer(0.03).minimize(loss)
 
-        return Q_Graph(x, target_q, out_q, max_q, action, train)
+        return Q_Graph(x, q_target, q, q_max, action, train)
 
     def train(self, epochs=EPOCHS, random_action_probability=1, tpath='.'):
         memory = deque([], MEMORY_SIZE)
@@ -101,7 +101,7 @@ class Q_Snake:
 
                 state = np.copy(game.board)
                 qs, action = flatten(self.session.run(
-                    [self.graph.out_q, self.graph.action],
+                    [self.graph.q, self.graph.action],
                     {self.graph.x: [state * 2 - state_old]}
                 ))
 
@@ -135,28 +135,28 @@ class Q_Snake:
                 # Did we see enough moves to start learning?
                 if len(memory) == memory.maxlen:
                     train_states = []
-                    train_target_qs = []
+                    train_q_targets = []
                     samples = np.random.permutation(memory.maxlen)[:BATCHSIZE]
                     for i in samples:
                         diff_state, action, reward, diff_state_new = memory[i]
-                        out_q, = self.session.run(self.graph.out_q, {
+                        q, = self.session.run(self.graph.q, {
                             self.graph.x: [diff_state],
                         })
-                        max_q, = self.session.run(self.graph.max_q, {
+                        q_max, = self.session.run(self.graph.q_max, {
                             self.graph.x: [diff_state_new],
                         })
 
                         if reward == -1:  # terminal state
-                            out_q[action] = -1
+                            q[action] = -1
                         else:
-                            out_q[action] = reward + (Q_DECAY * max_q)
+                            q[action] = reward + (Q_DECAY * q_max)
 
                         train_states.append(diff_state)
-                        train_target_qs.append(out_q)
+                        train_q_targets.append(q)
 
                     self.session.run(self.graph.train, {
                         self.graph.x: train_states,
-                        self.graph.target_q: train_target_qs,
+                        self.graph.q_target: train_q_targets,
                     })
 
                 # Exit game loop if game ended.
