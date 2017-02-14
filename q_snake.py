@@ -8,11 +8,18 @@ from datetime import datetime
 import numpy as np
 import tensorflow as tf
 import matplotlib
-matplotlib.use('tkAgg')
-from matplotlib import pyplot as plt
 
-from snake_ui import SnakeUI
 from snake import Snake
+
+try:
+    matplotlib.use('TkAgg')
+    from matplotlib import pyplot as plt
+    from snake_ui import SnakeUI
+except:
+    tkagg_available = False
+    pass
+else:
+    tkagg_available = True
 
 
 BOARD_SIZE = 4
@@ -216,6 +223,10 @@ def main(args):
             train(tpath=args[1])
         train()
     elif len(args) > 0 and args[0] == 'play':
+        if not tkagg_available:
+            print('TkAgg Matplotlib backend not available, cannot visualize '
+                  'gameplay.')
+            sys.exit(1)
         checkpoint = 'LATEST'
         if len(args) > 1 and args[1].lower() != 'latest':
             checkpoint = path.realpath(args[1])
