@@ -46,7 +46,7 @@ def dens_layer(x, shape, act_func=None):
 
 
 Q_Graph = namedtuple('Q_Graph', [
-    'state', 'target_q', 'out_q', 'max_q', 'action', 'train',
+    'x', 'target_q', 'out_q', 'max_q', 'action', 'train',
 ])
 
 
@@ -67,10 +67,10 @@ class Q_Snake:
             self.saver.restore(self.session, checkpoint)
 
     def _model(self):
-        state = tf.placeholder(tf.float32, (None, BOARD_SIZE, BOARD_SIZE))
+        x = tf.placeholder(tf.float32, (None, BOARD_SIZE, BOARD_SIZE))
         target_q = tf.placeholder(tf.float32, (None, 4))
 
-        net = tf.reshape(state, (-1, BOARD_SIZE, BOARD_SIZE, 1))  # for conv
+        net = tf.reshape(x, (-1, BOARD_SIZE, BOARD_SIZE, 1))  # for conv
         net = net / tf.reduce_max(net)  # let input range from 0 to 1
 
         net = conv_layer(net, (1, 8), (4, 4))
@@ -85,7 +85,7 @@ class Q_Snake:
         loss = tf.reduce_mean(tf.square(target_q - out_q))
         train = tf.train.RMSPropOptimizer(0.03).minimize(loss)
 
-        return Q_Graph(state, target_q, out_q, max_q, action, train)
+        return Q_Graph(x, target_q, out_q, max_q, action, train)
 
     def train(self, epochs=EPOCHS, random_action_probability=1, tpath='.'):
         memory = deque([], MEMORY_SIZE)
@@ -94,12 +94,15 @@ class Q_Snake:
             game = Snake(BOARD_SIZE, markhead=True)
             no_reward_states = 0
             last_highscore = 0
+            state = np.zeros(game.board.shape)
 
-            while true:
+            while 42:
+                state_old = state
+
                 state = np.copy(game.board)
                 qs, action = flatten(self.session.run(
                     [self.graph.out_q, self.graph.action],
-                    {self.graph.state: [state]}
+                    {self.graph.x: [state * 2 - state_old]}
                 ))
 
                 # Maybe take a random action instead.
@@ -108,7 +111,7 @@ class Q_Snake:
                     action = np.random.randint(0, ACTIONS)
 
                 # Carry out action
-                game_state = game.step(action)
+                game_status = game.step(action)
                 state_new = np.copy(game.board)
 
                 # Observe reward
@@ -117,16 +120,17 @@ class Q_Snake:
                     no_reward_states = 0
                     last_highscore = game.highscore
                 else:
-                    reward = game_state  # -0.25 if snake_state == 0 else -1
+                    reward = game_status
 
                 # Punish staying alive without getting a reward.
-                if reward == 0 && no_reward_states >= MAX_NO_REWARD_STATES:
+                if reward == 0 and no_reward_states >= MAX_NO_REWARD_STATES:
                     reward = -1
                 no_reward_states += 1
 
                 # Store in replay memory
                 # TODO: Store memory in tensorflow.
-                memory.append((state, action, reward, state_new))
+                memory.append((state * 2 - state_old, action, reward,
+                               state_new * 2 - state))
 
                 # Did we see enough moves to start learning?
                 if len(memory) == memory.maxlen:
@@ -134,12 +138,12 @@ class Q_Snake:
                     train_target_qs = []
                     samples = np.random.permutation(memory.maxlen)[:BATCHSIZE]
                     for i in samples:
-                        state_old, action, reward, state_new = memory[i]
+                        diff_state, action, reward, diff_state_new = memory[i]
                         out_q, = self.session.run(self.graph.out_q, {
-                            self.graph.state: [state_old],
+                            self.graph.x: [diff_state],
                         })
                         max_q, = self.session.run(self.graph.max_q, {
-                            self.graph.state: [state_new],
+                            self.graph.x: [diff_state_new],
                         })
 
                         if reward == -1:  # terminal state
@@ -147,16 +151,16 @@ class Q_Snake:
                         else:
                             out_q[action] = reward + (Q_DECAY * max_q)
 
-                        train_states.append(state_old)
+                        train_states.append(diff_state)
                         train_target_qs.append(out_q)
 
                     self.session.run(self.graph.train, {
-                        self.graph.state: train_states,
+                        self.graph.x: train_states,
                         self.graph.target_q: train_target_qs,
                     })
 
                 # Exit game loop if game ended.
-                if game_state != 0:
+                if game_status != 0:
                     break
 
             if epoch % 100 == 0:
@@ -180,7 +184,7 @@ def play(checkpoint=None):
         checkpoint = checkpoints[-1].replace('.meta', '')
 
     player = Q_Snake(checkpoint)
-    game = Snake(BOARD_SIZE, markhead=True)
+    game = Snake(BOARD_SIZE)
 
     def step():
         ret = game.step(player.get_action([game.board]))
