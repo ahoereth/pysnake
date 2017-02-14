@@ -36,10 +36,13 @@ def conv_layer(x, shape, kernel, stride=1):
     return tf.nn.relu(conv + bias)
 
 
-def dens_layer(x, shape, act_func=lambda x: x):
+def dens_layer(x, shape, act_func=None):
     weights = tf.Variable(tf.truncated_normal(shape, stddev=0.1))
     bias = tf.Variable(tf.ones((shape[1],))/10)
-    return act_func(tf.matmul(x, weights) + bias)
+    if callable(act_func):
+        return act_func(tf.matmul(x, weights) + bias)
+    else:
+        return tf.matmul(x, weights) + bias
 
 
 Q_Graph = namedtuple('Q_Graph', [
@@ -75,7 +78,7 @@ class Q_Snake:
         net = tf.reshape(net, (-1, BOARD_SIZE * BOARD_SIZE * 12))
         net = dens_layer(net, (BOARD_SIZE * BOARD_SIZE * 12, 1024), tf.nn.relu)
 
-        out_q = dens_layer(net, (1024, 4), tf.nn.softsign)
+        out_q = dens_layer(net, (1024, 4))
         max_q = tf.reduce_max(out_q, axis=1)
         action = tf.argmax(out_q, axis=1)
 
