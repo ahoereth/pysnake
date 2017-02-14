@@ -11,7 +11,7 @@ BOARD_SIZE = 4
 DIRECTIONS = 4
 
 MAX_GAME_STEPS = 100
-MAX_INDIVIDUALS = 22
+MAX_INDIVIDUALS = 100
 WINNER_RATIO = .5
 MAX_GENERATIONS = 500  # 00
 
@@ -24,7 +24,7 @@ class EvolveSnake:
     def __init__(self, snake, weights=None):
         """Initializes a TensorFlow graph to play snake."""
         self.snake = snake
-        self.layers = [self.snake.board.size + 1, 5, DIRECTIONS]
+        self.layers = [self.snake.board.size + 1, 4, DIRECTIONS]
         self.weights = weights
         if self.weights is None:
             self.weights = [np.random.random((size, self.layers[i+1]))
@@ -78,6 +78,7 @@ class SnakeTrainer:
         keep = int(np.ceil(MAX_INDIVIDUALS*WINNER_RATIO))
         ranked_individuals = sorted(results, key=lambda x: x[1]/x[2], reverse=True)
 
+        
         best_individuals = [i[0] for i in ranked_individuals[0:keep]]
         offsprings = self.get_offsprings(best_individuals)
         random_new = self.generate_snakes(MAX_INDIVIDUALS-keep-len(offsprings))
