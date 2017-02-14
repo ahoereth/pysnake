@@ -15,6 +15,7 @@ MAX_INDIVIDUALS = 100
 WINNER_RATIO = .5
 MAX_GENERATIONS = 500  # 00
 
+
 NUM_POOLS = 4
 
 PRECISION = tf.float64
@@ -45,7 +46,8 @@ class EvolveSnake:
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             for i in range(MAX_GAME_STEPS):
-                act = sess.run(action, {board: [np.append(self.snake.board.flatten(),1)]})
+                act = sess.run(action,
+                               {board: [np.append(self.snake.board.flat, 1)]})
                 if self.snake.step(act) == -1:
                     break
 
@@ -58,36 +60,35 @@ def play_snake(snake):
 
 
 class SnakeTrainer:
-    def generate_snakes(self, number, weights = None):
-        if weights is None:
-            snakes = [EvolveSnake(Snake(BOARD_SIZE)) for i in range(number)]
-        else:
-            snakes = [EvolveSnake(Snake(BOARD_SIZE), weight) for weight in weights]
+    def generate_snakes(self, number_or_weights):
+        try:
+            snakes = [EvolveSnake(Snake(BOARD_SIZE), weights)
+                      for weights in number_or_weights]
+        except TypeError:
+            snakes = [EvolveSnake(Snake(BOARD_SIZE))
+                      for i in range(number_or_weights)]
         return snakes
-
 
     def get_offsprings(self, parents):
         babies = []
         for mum, dad in itertools.combinations(parents, 2):
-            baby = [(a+b)/2 for a, b in zip(mum, dad)]
+            baby = [(a + b) / 2 for a, b in zip(mum, dad)]
             babies.append(baby)
         return babies
 
     def build_next_generation(self, results):
         # sort for highscore per step
-        keep = int(np.ceil(MAX_INDIVIDUALS*WINNER_RATIO))
-        ranked_individuals = sorted(results, key=lambda x: x[1]/x[2], reverse=True)
+        keep = int(np.ceil(MAX_INDIVIDUALS * WINNER_RATIO))
+        ranked_individuals = sorted(results, key=lambda x: x[1] / x[2],
+                                    reverse=True)
 
         
         best_individuals = [i[0] for i in ranked_individuals[0:keep]]
         offsprings = self.get_offsprings(best_individuals)
-        random_new = self.generate_snakes(MAX_INDIVIDUALS-keep-len(offsprings))
+        new = self.generate_snakes(MAX_INDIVIDUALS - keep - len(offsprings))
 
-        new_gen = self.generate_snakes(0, best_individuals + offsprings) + random_new
+        new_gen = self.generate_snakes(best_individuals + offsprings) + new
         return new_gen
-
-
-
 
 
 if __name__ == '__main__':
