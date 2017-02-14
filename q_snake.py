@@ -56,7 +56,8 @@ class Q_Snake:
         self.start = datetime.now().strftime('%Y%m%d-%H%M%S')
         self.graph = self._model()
         self.session = tf.Session()
-        self.saver = tf.train.Saver()
+        self.saver = tf.train.Saver(keep_checkpoint_every_n_hours=.25,
+                                    max_to_keep=20)
 
         self.session.run(tf.global_variables_initializer())
         if checkpoint is not None:
@@ -149,12 +150,8 @@ class Q_Snake:
 
             if epoch % 100 == 0:
                 print('epoch {} of {}'.format(epoch, epochs))
-                self.saver.save(self.session,
-                    path.join(tpath, '{}{}'.format(CKPTNAME, self.start)),
-                    global_step=epoch,
-                    max_to_keep=20,
-                    keep_checkpoint_every_n_hours=.25,
-                )
+                save_path = path.join(tpath, CKPTNAME + self.start)
+                self.saver.save(self.session, save_path, global_step=epoch)
 
             if random_action_probability > 0.1:
                 random_action_probability -= (1/epochs)
@@ -192,11 +189,11 @@ def train(tpath='.'):
 
 
 def main(args):
-    if args[0] == 'train':
+    if len(args) > 0 and args[0] == 'train':
         if len(args) > 1:
             train(tpath=args[1])
         train()
-    elif args[0] == 'play':
+    elif len(args) > 0 and args[0] == 'play':
         checkpoint = 'LATEST'
         if len(args) > 1 and args[1].lower() != 'latest':
             checkpoint = path.realpath(args[1])
