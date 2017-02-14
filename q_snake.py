@@ -98,7 +98,7 @@ class Q_Snake:
         memory = deque([], MEMORY_SIZE)
 
         for epoch in range(1, epochs + 1):
-            game = Snake(BOARD_SIZE, markhead=True)
+            game = Snake(BOARD_SIZE, walled=True)
             no_reward_states = 0
             last_highscore = 0
             state = np.zeros(game.board.shape)
@@ -198,7 +198,7 @@ def play(checkpoint=None):
         checkpoint = checkpoints[-1].replace('.meta', '')
 
     player = Q_Snake(checkpoint)
-    game = Snake(BOARD_SIZE)
+    game = Snake(BOARD_SIZE, walled=True)
 
     def step():
         ret = game.step(player.get_action(game.board))

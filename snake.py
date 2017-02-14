@@ -11,7 +11,7 @@ BG = 0
 class Snake:
     """A snake simulation."""
 
-    def __init__(self, size=4, markhead=False):
+    def __init__(self, size=4, markhead=False, walled=False):
         """Initializes a random square board of size size.
 
         Generates one snake and one food position.
@@ -22,6 +22,7 @@ class Snake:
         self.size = size
         self.minsnakelen = 5
         self.markhead = markhead
+        self.walled = walled
 
         self.steps = 0
         self.board = np.ones((self.size, self.size)) * BG
@@ -60,9 +61,15 @@ class Snake:
 
         r, c = self.head
         if self.dir & 2:  # horizontal
-            c = (c + (self.dir & 1) * 2 - 1) % self.size
+            c = (c + (self.dir & 1) * 2 - 1)
+            if self.walled and (c < 0 or c >= self.size):
+                return -1
+            c = c % self.size
         else:  # vertical
-            r = (r + (self.dir & 1) * 2 - 1) % self.size
+            r = (r + (self.dir & 1) * 2 - 1)
+            if self.walled and (r < 0 or r >= self.size):
+                return -1
+            r = r % self.size
 
         head = np.ravel_multi_index((r, c), self.board.shape)
         if self.board.flat[head] == SNAKE:  # died
