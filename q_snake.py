@@ -1,5 +1,6 @@
 import sys
 from os import path
+from glob import glob
 from collections import deque, namedtuple
 from datetime import datetime
 
@@ -23,6 +24,8 @@ MAX_GAME_STEPS = 100
 ACTIONS = 4
 MEMORY_SIZE = 80
 BATCHSIZE = 40
+
+CKPTNAME = 'q_snake-'
 
 
 def conv_layer(x, shape, kernel, stride=1):
@@ -49,8 +52,6 @@ def flatten(l):
 
 class Q_Snake:
     def __init__(self, checkpoint=None):
-        self.checkpoint = checkpoint
-
         self.start = datetime.now().strftime('%Y%m%d-%H%M%S')
         self.graph = self._model()
         self.session = tf.Session()
@@ -59,7 +60,6 @@ class Q_Snake:
         self.session.run(tf.global_variables_initializer())
         if checkpoint is not None:
             self.saver.restore(self.session, checkpoint)
-
 
     def _model(self):
         state = tf.placeholder(tf.float32, (None, BOARD_SIZE, BOARD_SIZE))
@@ -82,8 +82,7 @@ class Q_Snake:
 
         return Q_Graph(state, target_q, out_q, max_q, action, train)
 
-
-    def train(self, epochs=EPOCHS, random_action_probability=1):
+    def train(self, epochs=EPOCHS, random_action_probability=1, tpath='.'):
         memory = deque([], MEMORY_SIZE)
 
         for epoch in range(1, epochs + 1):
@@ -150,8 +149,10 @@ class Q_Snake:
             if epoch % 100 == 0:
                 print('epoch {} of {}'.format(epoch, epochs))
                 self.saver.save(self.session,
-                    'q_snake-{}'.format(self.start),
-                    global_step=epoch
+                    path.join(tpath, '{}{}'.format(CKPTNAME, self.start)),
+                    global_step=epoch,
+                    max_to_keep=20,
+                    keep_checkpoint_every_n_hours=.25,
                 )
 
             if random_action_probability > 0.1:
@@ -164,8 +165,12 @@ class Q_Snake:
         return action
 
 
-def play(checkpoint):
-    player = Q_Snake(checkpoint=path.realpath(checkpoint))
+def play(checkpoint=None):
+    if checkpoint == 'LATEST':
+        checkpoints = sorted(glob('./{}*'.format(CKPTNAME)))
+        checkpoint = checkpoints[-1].replace('.meta', '')
+
+    player = Q_Snake(checkpoint)
     game = Snake(BOARD_SIZE, markhead=True)
 
     def step():
@@ -180,14 +185,25 @@ def play(checkpoint):
     plt.show()
 
 
-def train():
+def train(tpath='.'):
     player = Q_Snake()
-    player.train()
+    player.train(tpath=tpath)
+
+
+def main(args):
+    if args[0] == 'train':
+        if len(args) > 1:
+            train(tpath=args[1])
+        train()
+    elif args[0] == 'play':
+        checkpoint = 'LATEST'
+        if len(args) > 1 and args[1].lower() != 'latest':
+            checkpoint = path.realpath(args[1])
+        play(checkpoint)
+    else:
+        print('Please provide either the `train CHECKPOINT_PATH` or '
+              '`play CHECKPOINT_PATH` positional arguments. ')
 
 
 if __name__ == '__main__':
-    args = sys.argv[1:]
-    if len(args) > 0:
-        play(args[0])
-    else:
-        train()
+    main(sys.argv[1:])
