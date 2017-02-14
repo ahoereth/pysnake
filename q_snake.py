@@ -18,9 +18,9 @@ from snake import Snake
 BOARD_SIZE = 4
 DIRECTIONS = 4
 
-EPOCHS = 1000
+EPOCHS = 10000
 Q_DECAY = .975
-MAX_GAME_STEPS = 100
+MAX_NO_REWARD_STATES = BOARD_SIZE**2
 
 ACTIONS = 4
 MEMORY_SIZE = 80
@@ -92,8 +92,10 @@ class Q_Snake:
 
         for epoch in range(1, epochs + 1):
             game = Snake(BOARD_SIZE, markhead=True)
+            no_reward_states = 0
             last_highscore = 0
-            for _ in range(MAX_GAME_STEPS):
+
+            while true:
                 state = np.copy(game.board)
                 qs, action = flatten(self.session.run(
                     [self.graph.out_q, self.graph.action],
@@ -112,9 +114,15 @@ class Q_Snake:
                 # Observe reward
                 if game.highscore > last_highscore:
                     reward = 1
+                    no_reward_states = 0
                     last_highscore = game.highscore
                 else:
                     reward = game_state  # -0.25 if snake_state == 0 else -1
+
+                # Punish staying alive without getting a reward.
+                if reward == 0 && no_reward_states >= MAX_NO_REWARD_STATES:
+                    reward = -1
+                no_reward_states += 1
 
                 # Store in replay memory
                 # TODO: Store memory in tensorflow.
@@ -137,7 +145,7 @@ class Q_Snake:
                         if reward == -1:  # terminal state
                             out_q[action] = -1
                         else:
-                            out_q[action] = np.min([reward + (Q_DECAY * max_q), 1])
+                            out_q[action] = reward + (Q_DECAY * max_q)
 
                         train_states.append(state_old)
                         train_target_qs.append(out_q)
