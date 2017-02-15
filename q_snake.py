@@ -36,10 +36,10 @@ BATCHSIZE = 40
 CKPTNAME = 'q_snake-'
 
 
-def conv_layer(x, shape, kernel, stride=1):
+def conv_layer(x, shape, kernel, stride=1, padding='SAME'):
     weights = tf.Variable(tf.truncated_normal(kernel + shape, stddev=0.1))
     bias = tf.Variable(tf.ones((shape[1],))/100)
-    conv = tf.nn.conv2d(x, weights, (1, stride, stride, 1), 'SAME')
+    conv = tf.nn.conv2d(x, weights, (1, stride, stride, 1), padding)
     return tf.nn.relu(conv + bias)
 
 
@@ -53,7 +53,13 @@ def dens_layer(x, shape, act_func=None):
 
 
 Q_Graph = namedtuple('Q_Graph', [
-    'x', 'q_target', 'q', 'q_max', 'action', 'train',
+    'x',
+    'q_target',
+    'q',
+    'q_max',
+    'action',
+    'train',
+    'loss',
 ])
 
 
@@ -66,7 +72,7 @@ class Q_Snake:
         self.start = datetime.now().strftime('%Y%m%d-%H%M%S')
         self.graph = self._model()
         self.session = tf.Session()
-        self.saver = tf.train.Saver(keep_checkpoint_every_n_hours=.25,
+        self.saver = tf.train.Saver(keep_checkpoint_every_n_hours=.1,
                                     max_to_keep=20)
 
         self.session.run(tf.global_variables_initializer())
@@ -77,25 +83,31 @@ class Q_Snake:
         x = tf.placeholder(tf.float32, (None, BOARD_SIZE, BOARD_SIZE))
         q_target = tf.placeholder(tf.float32, (None, 4))
 
+        M = 16
+        N = 32
+        O = BOARD_SIZE * BOARD_SIZE * 32
+        P = 256
+
         net = tf.reshape(x, (-1, BOARD_SIZE, BOARD_SIZE, 1))  # for conv
         net = net / tf.reduce_max(net)  # let input range from 0 to 1
 
-        net = conv_layer(net, (1, 8), (4, 4))
-        net = conv_layer(net, (8, 12), (3, 3))
-        net = tf.reshape(net, (-1, BOARD_SIZE * BOARD_SIZE * 12))
-        net = dens_layer(net, (BOARD_SIZE * BOARD_SIZE * 12, 1024), tf.nn.relu)
+        net = conv_layer(net, (1, M), (3, 3))
+        net = conv_layer(net, (M, N), (3, 3))
+        net = tf.reshape(net, (-1, O))
+        net = dens_layer(net, (O, P), tf.nn.relu)
 
-        q = dens_layer(net, (1024, 4))
+        q = dens_layer(net, (P, ACTIONS))
         q_max = tf.reduce_max(q, axis=1)
         action = tf.argmax(q, axis=1)
 
         loss = tf.reduce_mean(tf.square(q_target - q))
         train = tf.train.RMSPropOptimizer(0.03).minimize(loss)
 
-        return Q_Graph(x, q_target, q, q_max, action, train)
+        return Q_Graph(x, q_target, q, q_max, action, train, loss)
 
     def train(self, epochs=EPOCHS, random_action_probability=1, tpath='.'):
         memory = deque([], MEMORY_SIZE)
+        random_action_decay = (.9 / (epochs * .5))
 
         for epoch in range(1, epochs + 1):
             game = Snake(BOARD_SIZE, walled=True)
@@ -170,13 +182,13 @@ class Q_Snake:
                 if game_status != 0:
                     break
 
-            if epoch % 100 == 0:
+            if epoch % 100 == 0 and len(memory) == memory.maxlen:
                 print('epoch {} of {}'.format(epoch, epochs))
                 save_path = path.join(tpath, CKPTNAME + self.start)
                 self.saver.save(self.session, save_path, global_step=epoch)
 
             if random_action_probability > 0.1:
-                random_action_probability -= (1/epochs)
+                random_action_probability -= random_action_decay
 
     def get_action(self, state):
         try:
