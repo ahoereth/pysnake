@@ -26,7 +26,7 @@ class Snake:
 
         self.steps = 0
         self.board = np.ones((self.size, self.size)) * BG
-        self.body = [rand.randint(0, len(self.board) - 1)]
+        self.body = [rand.randint(0, self.board.size - 1)]
         self.board.flat[self.body[0]] = SNAKE if not self.markhead else HEAD
         self.board.flat[rand.choice(np.flatnonzero(self.board == BG))] = FOOD
         self.dir = np.random.randint(0, 4)
