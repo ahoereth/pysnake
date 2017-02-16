@@ -1,6 +1,7 @@
 import numpy as np
 from numpy import random as rand
 
+SNAKE_SETTINGS = {'size': 8, 'markhead': False, 'walled': True}
 
 HEAD = 3
 SNAKE = 2

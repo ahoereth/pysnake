@@ -1,8 +1,10 @@
+import sys
+
 import matplotlib
 matplotlib.use('tkAgg')
 from matplotlib import pyplot as plt  # noqa: E402
 
-from snake import Snake  # noqa: E402
+from snake import Snake, SNAKE_SETTINGS  # noqa: E402
 from snake_ui import SnakeUI  # noqa: E402
 
 
@@ -30,6 +32,11 @@ class SystematicSnake:
         ret = self.snake.step(next_step)
         if ret:
             print('You {}'.format('win' if ret > 0 else 'lose'))
+            if len(sys.argv) > 1:
+                # writes the score into the output file
+                with open('systematic.csv', 'a') as f:
+                    print(self.snake.highscore, self.snake.steps, sep=',',
+                          file=f)
             return 0
 
     def calculate_step(self):
@@ -70,7 +77,7 @@ class SystematicSnake:
 
 
 if __name__ == '__main__':
-    snake = Snake(10)
+    snake = Snake(**SNAKE_SETTINGS)
     ui = SnakeUI(snake)
     SystematicSnake(snake, ui)
     plt.show()

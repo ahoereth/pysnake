@@ -5,9 +5,8 @@ from multiprocessing import Pool
 import numpy as np
 import tensorflow as tf
 
-from snake import Snake
+from snake import Snake, SNAKE_SETTINGS
 
-BOARD_SIZE = 4
 DIRECTIONS = 4
 
 MAX_GAME_STEPS = 100
@@ -67,15 +66,20 @@ class SnakeTrainer:
         """
         This function generates Snakes with random or predefined weights.
 
-        :param number_or_weights: if an integer argument is given, this number of new Snakes is generated
-                                  if a list of weights is given, those are used to initialize the network
-        :return: the generated Snakes
+        Args:
+            number_or_weights: if an integer argument is given, this number of
+                               new Snakes is generated
+                               if a list of weights is given, those are used to
+                               initialize the network
+
+        Returns:
+            the generated Snakes
         """
         try:
-            snakes = [EvolveSnake(Snake(BOARD_SIZE), weights)
+            snakes = [EvolveSnake(Snake(**SNAKE_SETTINGS), weights)
                       for weights in number_or_weights]
         except TypeError:
-            snakes = [EvolveSnake(Snake(BOARD_SIZE))
+            snakes = [EvolveSnake(Snake(**SNAKE_SETTINGS))
                       for i in range(number_or_weights)]
         return snakes
 
@@ -83,10 +87,12 @@ class SnakeTrainer:
         """
         Flattens a list containing several sublists into a flat list.
 
-        :return: a flattened representation of the given list
+        Returns:
+            a flattened representation of the given list
         """
         for el in l:
-            if isinstance(el, collections.Iterable) and not isinstance(el, (str, bytes)):
+            if isinstance(el, collections.Iterable) and \
+                    not isinstance(el, (str, bytes)):
                 yield from SnakeTrainer.flatten(el)
             else:
                 yield el
@@ -95,8 +101,12 @@ class SnakeTrainer:
         """
         Generates the offspring from two controller Networks.
 
-        :param parents: The parents which weight values are being used to generate the offspring
-        :return: the generated offspring networks
+        Args:
+            parents: The parents which weight values are being used to generate
+                     the offspring
+
+        Returns:
+            the generated offspring networks
         """
         babies = []
         for mum, dad in itertools.combinations(parents, 2):
@@ -107,8 +117,10 @@ class SnakeTrainer:
             baby_flat = []
             for i in range(0, len(flat_mum)):
                 # Step 1: Random Crossover
-                # choose with equal probability the weight for the child from mum and dad
-                baby_flat.append(flat_mum[i] if np.random.random_sample() < 0.5 else flat_dad[i])
+                # choose with equal probability the weight for the child from
+                # mum and dad
+                baby_flat.append(flat_mum[i] if np.random.random_sample() < 0.5
+                                 else flat_dad[i])
                 # Step 2: Mutation
                 if np.random.random_sample() < MUTATIONRATE:
                     baby_flat[i] = np.random.random_sample()
@@ -117,9 +129,9 @@ class SnakeTrainer:
             start_w = 0
             baby = []
             for i in range(len(mum)):
-                lx, ly = mum[i].shape
-                layer = np.array(baby_flat)[start_w: start_w + lx * ly].reshape(mum[i].shape)
-                start_w = start_w + lx * ly
+                layer = np.array(baby_flat)[start_w: start_w +
+                                            mum[i].size].reshape(mum[i].shape)
+                start_w = start_w + mum[i].size
                 baby.append(layer)
 
             babies.append(baby)
@@ -133,7 +145,8 @@ class SnakeTrainer:
         :return: a new generation to be used
         """
         # sort for highscore per step
-        ranked_individuals = sorted(results, key=lambda x: x[1] / x[2], reverse=True)
+        ranked_individuals = sorted(results, key=lambda x: x[1] / x[2],
+                                    reverse=True)
 
         best_individuals = [i[0] for i in ranked_individuals[0:KEEP]]
         offsprings = self.get_offsprings(best_individuals)

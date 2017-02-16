@@ -4,7 +4,7 @@ import matplotlib
 matplotlib.use('tkAgg')
 from matplotlib import pyplot as plt  # noqa: E402
 
-from snake import Snake  # noqa: E402
+from snake import Snake, SNAKE_SETTINGS  # noqa: E402
 from snake_ui import SnakeUI  # noqa: E402
 
 
@@ -34,10 +34,16 @@ class HumanSnake:
             ret = self.snake.step(self.actions[key])
             if ret != 0:
                 print('You {}!'.format('win' if ret > 0 else 'lose'))
+                if len(sys.argv) > 1:
+                    # writes the score into the output file
+                    with open('participant{}.csv'.format(sys.argv[1]), 'a') \
+                            as f:
+                        print(self.snake.highscore, self.snake.steps, sep=',',
+                              file=f)
                 sys.exit()
 
 
 if __name__ == '__main__':
-    snake = Snake(size=4)
+    snake = Snake(**SNAKE_SETTINGS)
     ui = SnakeUI(snake)
     HumanSnake(snake, ui)

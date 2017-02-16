@@ -9,7 +9,7 @@ import numpy as np
 import tensorflow as tf
 import matplotlib
 
-from snake import Snake
+from snake import Snake, SNAKE_SETTINGS
 
 try:
     matplotlib.use('TkAgg')
@@ -22,12 +22,11 @@ else:
     tkagg_available = True
 
 
-BOARD_SIZE = 4
 DIRECTIONS = 4
 
 EPOCHS = 10000
 Q_DECAY = .975
-MAX_NO_REWARD_STATES = BOARD_SIZE**2
+MAX_NO_REWARD_STATES = SNAKE_SETTINGS['size'] ** 2
 
 ACTIONS = 4
 MEMORY_SIZE = 80
@@ -80,15 +79,17 @@ class Q_Snake:
             self.saver.restore(self.session, checkpoint)
 
     def _model(self):
-        x = tf.placeholder(tf.float32, (None, BOARD_SIZE, BOARD_SIZE))
+        x = tf.placeholder(tf.float32, (None, SNAKE_SETTINGS['size'],
+                                        SNAKE_SETTINGS['size']))
         q_target = tf.placeholder(tf.float32, (None, 4))
 
         M = 16
         N = 32
-        O = BOARD_SIZE * BOARD_SIZE * 32
+        O = SNAKE_SETTINGS['size'] * SNAKE_SETTINGS['size'] * 32
         P = 256
 
-        net = tf.reshape(x, (-1, BOARD_SIZE, BOARD_SIZE, 1))  # for conv
+        net = tf.reshape(x, (-1, SNAKE_SETTINGS['size'], SNAKE_SETTINGS['size'],
+                             1))  # for conv
         net = net / tf.reduce_max(net)  # let input range from 0 to 1
 
         net = conv_layer(net, (1, M), (3, 3))
@@ -110,7 +111,7 @@ class Q_Snake:
         random_action_decay = (.9 / (epochs * .5))
 
         for epoch in range(1, epochs + 1):
-            game = Snake(BOARD_SIZE, walled=True)
+            game = Snake(**SNAKE_SETTINGS)
             no_reward_states = 0
             last_highscore = 0
             state = np.zeros(game.board.shape)
@@ -210,7 +211,7 @@ def play(checkpoint=None):
         checkpoint = checkpoints[-1].replace('.meta', '')
 
     player = Q_Snake(checkpoint)
-    game = Snake(BOARD_SIZE, walled=True)
+    game = Snake(**SNAKE_SETTINGS['size'])
 
     def step():
         ret = game.step(player.get_action(game.board))
