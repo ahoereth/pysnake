@@ -18,7 +18,9 @@ class SystematicSnake:
     def __init__(self, snake, ui):
         self.snake = snake
         self.max_y, self.max_x = self.snake.board.shape
-        self.timer = ui.fig.canvas.new_timer(500, [(self, [], {})])
+        self.first_turn = True
+        self.timer = ui.fig.canvas.new_timer(500 if len(sys.argv) <= 1 else 1,
+                                             [(self, [], {})])
         self.timer.start()
 
     def __call__(self):
@@ -33,10 +35,11 @@ class SystematicSnake:
         if ret:
             print('You {}'.format('win' if ret > 0 else 'lose'))
             if len(sys.argv) > 1:
-                # writes the score into the output file
+                # writes the score into the output file and exits
                 with open('systematic.csv', 'a') as f:
                     print(self.snake.highscore, self.snake.steps, sep=',',
                           file=f)
+                sys.exit()
             return 0
 
     def calculate_step(self):
@@ -49,22 +52,53 @@ class SystematicSnake:
         If both sides are odd, there is no hamiltonian cycle available and the
         snake will crash eventually.
 
+        On the first turn the snake might correct its direction to avoid
+        running into walls because it can't move towards itself.
+
         Returns:
             The directional value.
         """
         y, x = self.snake.head
+        if self.first_turn:
+            self.first_turn = False
+            dir = self.calculate_first_step()
+            if dir >= 0:
+                return dir
+
         if x == 0:  # first col: down
-            if y == (self.max_y - 1):  # last row: right
+            if y == self.max_y - 1:  # last row: right
                 return 3
             return 1
         if y & 1:  # odd rows: right
-            if x == (self.max_x - 1):
+            if x == self.max_x - 1:
                 return 0
             return 3
         else:  # even rows: left
             if x == 1 and y > 0:
                 return 0
             return 2
+
+    def calculate_first_step(self):
+        """Corrects the first movement, in case the initial snake
+        direction is opposite to the optimal solution in cases where it
+        does not resolve itself.
+
+        Assumes the snake does not start on edges.
+
+        In particular the problems to be solved are:
+            odd rows with direction left
+            even rows with direction right
+        In both cases, the snake can just move up under the assumption
+        mentioned above.
+
+        Returns:
+             1 if the snake should move up
+            -1 otherwise
+        """
+        y, x = self.snake.head
+        if (y & 1 and self.snake.dir == 2) or self.snake.dir == 3:
+            return 0
+        return -1
 
 
 if __name__ == '__main__':

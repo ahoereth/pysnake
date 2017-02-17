@@ -13,7 +13,7 @@ class Snake:
 
     size = 8
     markhead = False
-    walled =  True
+    walled = True
 
     def __init__(self, size=size, markhead=markhead, walled=walled):
         """Initializes a random square board of size size.
