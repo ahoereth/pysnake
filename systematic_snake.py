@@ -42,38 +42,29 @@ class SystematicSnake:
     def calculate_step(self):
         """Calculates the next step.
 
-        Reads the current snake head position and moves in a spiraling pattern
-        around the board:
-
-        If at the main diagonal (x == y), change direction:
-            even values: move right
-            odd values: move left
-        If above diagonal (y < x):
-            even rows (y): move right, if at end move down
-            odd rows: move left
-        If below diagonal (y > x):
-            even columns (x): move up
-            odd columns: move down, if at end move right
+        For even board sizes, the SystematicSnake moves in a hamilton cycle
+        across the board.
+        If one side is odd, there is still a hamiltonian cycle to follow, but
+        for now the SystematicSnake will crash.
+        If both sides are odd, there is no hamiltonian cycle available and the
+        snake will crash eventually.
 
         Returns:
             The directional value.
         """
         y, x = self.snake.head
-        if y == x:  # diagonal: right on even, else down
-            if y == self.max_y - 1:
-                # exception: move right at bottom right
+        if x == 0:  # first col: down
+            if y == (self.max_y - 1):  # last row: right
                 return 3
-            return 3 - 2 * (y & 1)
-        if y < x:  # above diagonal: right on even row, else left
-            if x == self.max_x - 1 and y & 1 == 0:
-                # exception: move down at end of even row
-                return 1
-            return 3 - (y & 1)
-        else:  # below diagonal: up on even column, else down
-            if y == self.max_y - 1 and x & 1:
-                # exception: move right at and of odd column
-                return 3
-            return 1 - (1 - (x & 1))
+            return 1
+        if y & 1:  # odd rows: right
+            if x == (self.max_x - 1):
+                return 0
+            return 3
+        else:  # even rows: left
+            if x == 1 and y > 0:
+                return 0
+            return 2
 
 
 if __name__ == '__main__':
