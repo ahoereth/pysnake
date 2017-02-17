@@ -30,7 +30,7 @@ class Snake:
 
         self.steps = 0
         self.board = np.ones((self.size, self.size)) * BG
-        r, c = rand.randint(0, self.size - 1), rand.randint(0, self.size - 1)
+        r, c = rand.randint(1, self.size - 1), rand.randint(1, self.size - 1)
         self.body = [np.ravel_multi_index((r, c), self.board.shape)]
         self.board.flat[self.body[0]] = SNAKE if not self.markhead else HEAD
         self.board.flat[rand.choice(np.flatnonzero(self.board == BG))] = FOOD
