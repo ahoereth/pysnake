@@ -44,6 +44,7 @@ docker-machine create \\
     --driver amazonec2 \\
     --amazonec2-region {region} \\
     --amazonec2-zone {zone} \\
+    --amazonec2-ami {ami} \\
     --amazonec2-instance-type {instance_type} \\
     --amazonec2-security-group {security_group} \\
     --amazonec2-request-spot-instance \\
@@ -73,9 +74,6 @@ if __name__ == '__main__':
         instance_type=args.instance_type,
         security_group=args.security_group,
         price_max=price + args.max_price_on_top,
-        # vpc=args.vpc,
-        # iam='default',
-        # --amazonec2-vpc-id {vpc} \\
-        # --amazonec2-iam-instance-profile {iam} \\
+        ami=AMIS[(args.instance_type, zone[:-1])],
         name='aws42',
     ))
