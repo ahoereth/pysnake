@@ -5,7 +5,7 @@ from multiprocessing import Pool
 import numpy as np
 import tensorflow as tf
 
-from snake import Snake, SNAKE_SETTINGS
+from snake import Snake
 
 DIRECTIONS = 4
 
@@ -76,10 +76,10 @@ class SnakeTrainer:
             the generated Snakes
         """
         try:
-            snakes = [EvolveSnake(Snake(**SNAKE_SETTINGS), weights)
+            snakes = [EvolveSnake(Snake(), weights)
                       for weights in number_or_weights]
         except TypeError:
-            snakes = [EvolveSnake(Snake(**SNAKE_SETTINGS))
+            snakes = [EvolveSnake(Snake())
                       for i in range(number_or_weights)]
         return snakes
 

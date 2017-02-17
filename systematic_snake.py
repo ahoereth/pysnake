@@ -4,7 +4,7 @@ import matplotlib
 matplotlib.use('tkAgg')
 from matplotlib import pyplot as plt  # noqa: E402
 
-from snake import Snake, SNAKE_SETTINGS  # noqa: E402
+from snake import Snake  # noqa: E402
 from snake_ui import SnakeUI  # noqa: E402
 
 
@@ -68,7 +68,7 @@ class SystematicSnake:
 
 
 if __name__ == '__main__':
-    snake = Snake(**SNAKE_SETTINGS)
+    snake = Snake()
     ui = SnakeUI(snake)
     SystematicSnake(snake, ui)
     plt.show()

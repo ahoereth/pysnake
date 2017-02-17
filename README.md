@@ -11,3 +11,16 @@ We implement a simple snake game and different playing strategies:
 
 For the accompanying project report, check [overleaf](https://www.overleaf.com/8169167cgrvhvrwfbqs).
 
+
+
+## awstf.py
+The `awstf.py` script looks for the cheapest AWS region to lunch a `p2.xlarge` spot instance and provides you with a `docker-machine` command to launch such an instance prepared with an AMI optimized for Tensorflow GPU computing using `nvidia-docker` and Google's official Tensorflow container image.
+
+After launching a container scp your files to the container (or use git ssh'ed into the container) and start training:
+
+```
+localhost$ eval $(docker-machine env machinename)
+localhost$ docker-machine scp ./yourscript.py machinename:/home/ubuntu/
+localhost$ docker-machine ssh machinename
+awsremote$ sudo nvidia-docker run -it -v /home/ubuntu:/workdir tensorflow/tensorflow:latest-gpu-py3 python3 /workdir/yourscript.py
+```
