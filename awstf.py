@@ -6,28 +6,16 @@ from itertools import groupby
 
 import numpy as np
 import boto3
-import dotenv
 
-dotenv.load_dotenv(dotenv.find_dotenv())
-
-AWS_ACCESS_KEY_ID = environ.get('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = environ.get('AWS_SECRET_ACCESS_KEY')
 
 AMIS = {
     ('p2.xlarge', 'us-east-1'): 'ami-18438b0e',  # N. Virginia
     ('p2.xlarge', 'us-west-1'): 'ami-dadefebc',  # Ireland
 }
 
-useast1 = boto3.client('ec2',
-                        aws_access_key_id=AWS_ACCESS_KEY_ID,
-                        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-                        region_name='us-east-1')
 
-euwest1 = boto3.client('ec2',
-                      aws_access_key_id=AWS_ACCESS_KEY_ID,
-                      aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-                      region_name='eu-west-1')
-
+useast1 = boto3.client('ec2', region_name='us-east-1')
+euwest1 = boto3.client('ec2', region_name='eu-west-1')
 clients = [useast1, euwest1]
 
 
