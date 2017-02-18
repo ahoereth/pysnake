@@ -77,9 +77,6 @@ class Snake:
             r = r % self.size
 
         head = np.ravel_multi_index((r, c), self.board.shape)
-        if self.board.flat[head] == SNAKE:  # died
-            return -1
-
         if self.board.flat[head] == FOOD:  # caught a special dot
             # check win condition
             new_location = np.flatnonzero(self.board == BG)
@@ -89,6 +86,9 @@ class Snake:
             self.board.flat[food] = FOOD
         elif len(self.body) >= self.minsnakelen:  # otherwise cut off tail
             self.board.flat[self.body.pop(0)] = BG
+
+        if self.board.flat[head] == SNAKE:  # died
+            return -1
 
         self.steps += 1
         self.body.append(head)
