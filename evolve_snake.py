@@ -1,21 +1,26 @@
 import itertools
 import collections
+import sys
+from os import path
 from multiprocessing import Pool
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # hacky way for tensorflow to ignore the fact that I didn't build it locally
 
-import numpy as np
 import tensorflow as tf
+import numpy as np
+
 from matplotlib import pyplot as plt
 
 from snake import Snake
 from snake_ui import SnakeUI
 
-DIRECTIONS = 4
 
 MAX_GAME_STEPS = 100
 MAX_INDIVIDUALS = 100
 MAX_GENERATIONS = 20  # 00
 
 HIDDEN = 8
+LAYERS = [Snake.size**2 + 1, HIDDEN, Snake.directions]
 
 MUTATIONRATE = 0.001
 KEEP = 10  # The permutation of this is also kept in the 'children'
@@ -23,15 +28,17 @@ KEEP = 10  # The permutation of this is also kept in the 'children'
 NUM_POOLS = 4
 PRECISION = tf.float64
 
+CKPTNAME = 'evo_snake-'
+
 
 class EvolveSnake:
     def __init__(self, snake, weights=None):
         """Initializes a TensorFlow graph to play snake."""
         self.snake = snake
-        self.layers = [self.snake.board.size + 1, HIDDEN, DIRECTIONS]
+        self.layers = LAYERS
         self.weights = weights
         if self.weights is None:
-            self.weights = [np.random.random((size, self.layers[i+1]))
+            self.weights = [np.random.random((size, self.layers[i + 1]))
                             for i, size in enumerate(self.layers[:-1])]
 
     def init_network(self):
@@ -58,7 +65,6 @@ class EvolveSnake:
 
 
 class SnakeTrainer:
-
     def generate_snakes(self, number_or_weights):
         """
         This function generates Snakes with random or predefined weights.
@@ -149,29 +155,61 @@ class SnakeTrainer:
         offsprings = self.get_offsprings(best_individuals)
         spawning = MAX_INDIVIDUALS - KEEP - len(offsprings)
 
-        if(spawning > 0):
+        if (spawning > 0):
             new = self.generate_snakes(spawning)
 
         new_gen = self.generate_snakes(best_individuals + offsprings) + new
         return new_gen
 
 
-def play_snake(snake_file):
+def save_snake(results, keep=5, generation=0):
+    """
+    Saves Snakes from the evolution run to a given location.
+
+    :param results: results in the form of [weights, highscore, step]
+    :param keep: the number of snakes to be saved
+    :param generation: the generation count to be used (default = 0)
+    :return: Nothing! But saves the best x snakes in a file ;)
+    """
+    ranked_individuals = sorted(results, key=lambda x: x[1] / x[2], reverse=True)
+    # only save the best performing snake
+    print(ranked_individuals[0:keep])
+    with open(CKPTNAME+str(generation)+'.np', 'wb') as f:
+        np.savetxt(f, np.array(ranked_individuals[0:keep])) # TODO: fix this somehow :( maybe formatting?
+
+
+def load_snake(file):
+    """
+    Loads in the given file and uses numpy to convert it to an array
+    :param file: the file to be loaded
+    :return: an array containing the files input
+    """
+    return np.loadtxt(file)
+
+
+def play_snake(snake):
     """Plays snake with the given snake."""
+    return snake()
 
-    # Read file and generate weights from it
 
-    weights_flat = [] # get weights here
+def replay_snake(snake_file, individual=0):
+    """
+    Plays snake with the given snake.
+    :param snake_file the file from which the snake should be loaded
+    :param individual the individual from the file
+    """
+
+    weights_flat = load_snake(snake_file)[individual]
     weights = []
     start_w = 0
 
-    for i in range(len(mum)):
-        lx, ly = mum[i].shape
-        layer = np.array(weights_flat)[start_w: start_w + lx * ly].reshape(mum[i].shape)
+    for i in range(LAYERS):  # unflatten the weights
+        lx, ly = LAYERS[i].shape
+        layer = np.array(weights_flat)[start_w: start_w + lx * ly].reshape(LAYERS[i].shape)
         start_w = start_w + lx * ly
         weights.append(layer)
 
-    game = Snake(BOARD_SIZE, walled=True)
+    game = Snake(Snake.board, walled=True)
     player = EvolveSnake(game, weights)
 
     def step():
@@ -185,14 +223,39 @@ def play_snake(snake_file):
     timer.start()
     plt.show()
 
+
+def main(args):
+    """
+    Main method that can either train or replay a snake with evolution.
+
+    :param args: define whether it is training or replay
+    :return: Nothing
+    """
+    if len(args) > 0 and args[0] == 'train':
+        trainer = SnakeTrainer()
+        tensor_snakes = trainer.generate_snakes(MAX_INDIVIDUALS)
+
+        for i in range(MAX_GENERATIONS):
+            with Pool(NUM_POOLS) as p:
+                results = p.map(play_snake, tensor_snakes)
+            tensor_snakes = trainer.build_next_generation(results)
+
+        for w, h, s in results:
+            print(h, s)
+
+        save_snake(results, 5)
+
+    elif len(args) > 0 and args[0] == 'play':
+
+        if len(args) > 1 and args[1].lower() != 'latest':
+            file = path.realpath(args[1])
+        else:
+            file = path.realpath('evo_snake-0.np')
+
+        replay_snake(file)
+    else:
+        print('Please provide either the `train` or `play` positional arguments.')
+
+
 if __name__ == '__main__':
-    trainer = SnakeTrainer()
-    tensor_snakes = trainer.generate_snakes(MAX_INDIVIDUALS)
-
-    for i in range(MAX_GENERATIONS):
-        with Pool(NUM_POOLS) as p:
-            results = p.map(play_snake, tensor_snakes)
-        tensor_snakes = trainer.build_next_generation(results)
-
-    for w, h, s in results:
-        print(h, s)
+    main(sys.argv[1:])

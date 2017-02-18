@@ -14,19 +14,19 @@ class Snake:
     size = 8
     markhead = False
     walled = True
+    minsnakelen = 5
+    directions = 4  # Number of allowed directions (1: up, 2: down, 3: left, 4: right)
 
-    def __init__(self, size=size, markhead=markhead, walled=walled):
-        """Initializes a random square board of size size.
-
-        Generates one snake and one food position.
-
-        Args:
-            size: the size of the board sides.
+    def __init__(self, markhead=markhead, walled=walled):
         """
-        self.size = size
-        self.minsnakelen = 5
+        Initializes a random square board of size size. Generates one snake and one food position.
+
+        :param markhead: can be either True or False depending on if the head of the snake should be marked
+        :param walled: a walled board does not allow for the snake to cross the borders
+        """
         self.markhead = markhead
         self.walled = walled
+        self.size = Snake.size
 
         self.steps = 0
         self.board = np.ones((self.size, self.size)) * BG
@@ -34,7 +34,7 @@ class Snake:
         self.body = [np.ravel_multi_index((r, c), self.board.shape)]
         self.board.flat[self.body[0]] = SNAKE if not self.markhead else HEAD
         self.board.flat[rand.choice(np.flatnonzero(self.board == BG))] = FOOD
-        self.dir = np.random.randint(0, 4)
+        self.dir = np.random.randint(0, Snake.directions)
 
     def step(self, direction=None):
         """Moves the snake into the specified direction.
