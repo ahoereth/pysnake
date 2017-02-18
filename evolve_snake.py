@@ -4,8 +4,10 @@ from multiprocessing import Pool
 
 import numpy as np
 import tensorflow as tf
+from matplotlib import pyplot as plt
 
 from snake import Snake
+from snake_ui import SnakeUI
 
 BOARD_SIZE = 4
 DIRECTIONS = 4
@@ -54,11 +56,6 @@ class EvolveSnake:
                     break
 
         return self.weights, self.snake.highscore, self.snake.steps
-
-
-def play_snake(snake):
-    """Plays snake with the given snake."""
-    return snake()
 
 
 class SnakeTrainer:
@@ -145,6 +142,35 @@ class SnakeTrainer:
         new_gen = self.generate_snakes(best_individuals + offsprings) + new
         return new_gen
 
+
+def play_snake(snake_file):
+    """Plays snake with the given snake."""
+
+    # Read file and generate weights from it
+
+    weights_flat = [] # get weights here
+    weights = []
+    start_w = 0
+
+    for i in range(len(mum)):
+        lx, ly = mum[i].shape
+        layer = np.array(weights_flat)[start_w: start_w + lx * ly].reshape(mum[i].shape)
+        start_w = start_w + lx * ly
+        weights.append(layer)
+
+    game = Snake(BOARD_SIZE, walled=True)
+    player = EvolveSnake(game, weights)
+
+    def step():
+        ret = game.step(player.get_action(game.board))
+        if ret:
+            print('You {}'.format('win' if ret > 0 else 'lose'))
+            return 0
+
+    ui = SnakeUI(game)
+    timer = ui.fig.canvas.new_timer(500, [(step, [], {})])
+    timer.start()
+    plt.show()
 
 if __name__ == '__main__':
     trainer = SnakeTrainer()
