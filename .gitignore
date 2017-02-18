@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 ckpts/
 
-*.swp
-.autoenv*
 *.np
+*.swp
+_tmp*
+.autoenv*
