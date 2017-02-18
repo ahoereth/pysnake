@@ -24,7 +24,7 @@ else:
 
 DIRECTIONS = 4
 
-EPOCHS = 10000
+EPOCHS = 100000
 Q_DECAY = .8
 MAX_NO_REWARD_STATES = Snake.size ** 2
 
@@ -78,9 +78,9 @@ class Q_Snake:
         x = tf.placeholder(tf.float32, (None, Snake.size, Snake.size))
         q_target = tf.placeholder(tf.float32, (None, 4))
 
-        M = 16
-        N = 32
-        O = Snake.size ** 2 * 32
+        M = 24
+        N = 36
+        O = Snake.size ** 2 * N
         P = 256
 
         net = tf.reshape(x, (-1, Snake.size, Snake.size, 1))  # for conv
@@ -104,7 +104,6 @@ class Q_Snake:
         random_action_decay = (.9 / (epochs * .5))
 
         for epoch in range(1, epochs + 1):
-            no_reward_states = 0
             game = Snake()
             last_highscore = 0
             state = np.zeros(game.board.shape)
@@ -134,11 +133,6 @@ class Q_Snake:
                     last_highscore = game.highscore
                 else:
                     reward = game_status
-
-                # Punish staying alive without getting a reward.
-                if reward == 0 and no_reward_states >= MAX_NO_REWARD_STATES:
-                    reward = -1
-                no_reward_states += 1
 
                 # Store in replay memory
                 # TODO: Store memory in tensorflow.
@@ -225,9 +219,7 @@ def train(tpath='.'):
 
 def main(args):
     if len(args) > 0 and args[0] == 'train':
-        if len(args) > 1:
-            train(tpath=args[1])
-        train()
+        train(tpath=args[1] if len(args) > 1 else '.')
     elif len(args) > 0 and args[0] == 'play':
         if not tkagg_available:
             print('TkAgg Matplotlib backend not available, cannot visualize '
