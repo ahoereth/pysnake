@@ -40,6 +40,7 @@ class SnakeUI(animation.TimedAnimation):
 
             self.writer = Writer()
             self.writer.setup(self.fig, name, 72)
+            self.writer.fps = 30
 
             atexit.register(self.finish)
 

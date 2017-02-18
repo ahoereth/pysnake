@@ -42,8 +42,10 @@ class SystematicSnake:
                 with open('systematic.csv', 'a') as f:
                     print(self.snake.highscore, self.snake.steps, sep=',',
                           file=f)
+            try:
+                return 0
+            finally:
                 sys.exit()
-            return 0
 
     def calculate_step(self):
         """Calculates the next step.
