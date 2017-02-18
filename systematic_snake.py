@@ -19,7 +19,7 @@ class SystematicSnake:
         self.snake = snake
         self.max_y, self.max_x = self.snake.board.shape
         self.first_turn = True
-        self.timer = ui.fig.canvas.new_timer(500 if len(sys.argv) <= 1 else 1,
+        self.timer = ui.fig.canvas.new_timer(300 if len(sys.argv) <= 1 else 50,
                                              [(self, [], {})])
         self.timer.start()
 
@@ -34,7 +34,7 @@ class SystematicSnake:
         ret = self.snake.step(next_step)
         if ret:
             print('You {}'.format('win' if ret > 0 else 'lose'))
-            if len(sys.argv) > 1:
+            if '--store' in sys.argv:
                 # writes the score into the output file and exits
                 with open('systematic.csv', 'a') as f:
                     print(self.snake.highscore, self.snake.steps, sep=',',
