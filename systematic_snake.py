@@ -1,3 +1,5 @@
+import sys
+
 import matplotlib
 matplotlib.use('tkAgg')
 from matplotlib import pyplot as plt  # noqa: E402
@@ -16,7 +18,12 @@ class SystematicSnake:
     def __init__(self, snake, ui):
         self.snake = snake
         self.max_y, self.max_x = self.snake.board.shape
-        self.timer = ui.fig.canvas.new_timer(500, [(self, [], {})])
+        self.first_turn = True
+        store = '--store' in sys.argv
+        video = '--video' in sys.argv
+        refresh = 300 if not store else 1
+        refresh = 50 if video else refresh
+        self.timer = ui.fig.canvas.new_timer(refresh, [(self, [], {})])
         self.timer.start()
 
     def __call__(self):
@@ -30,47 +37,75 @@ class SystematicSnake:
         ret = self.snake.step(next_step)
         if ret:
             print('You {}'.format('win' if ret > 0 else 'lose'))
+            if '--store' in sys.argv:
+                # writes the score into the output file and exits
+                with open('systematic.csv', 'a') as f:
+                    print(self.snake.highscore, self.snake.steps, sep=',',
+                          file=f)
+                sys.exit()
             return 0
 
     def calculate_step(self):
         """Calculates the next step.
 
-        Reads the current snake head position and moves in a spiraling pattern
-        around the board:
+        For even board sizes, the SystematicSnake moves in a hamilton cycle
+        across the board.
+        If one side is odd, there is still a hamiltonian cycle to follow, but
+        for now the SystematicSnake will crash.
+        If both sides are odd, there is no hamiltonian cycle available and the
+        snake will crash eventually.
 
-        If at the main diagonal (x == y), change direction:
-            even values: move right
-            odd values: move left
-        If above diagonal (y < x):
-            even rows (y): move right, if at end move down
-            odd rows: move left
-        If below diagonal (y > x):
-            even columns (x): move up
-            odd columns: move down, if at end move right
+        On the first turn the snake might correct its direction to avoid
+        running into walls because it can't move towards itself.
 
         Returns:
             The directional value.
         """
         y, x = self.snake.head
-        if y == x:  # diagonal: right on even, else down
-            if y == self.max_y - 1:
-                # exception: move right at bottom right
+        if self.first_turn:
+            self.first_turn = False
+            dir = self.calculate_first_step()
+            if dir >= 0:
+                return dir
+
+        if x == 0:  # first col: down
+            if y == self.max_y - 1:  # last row: right
                 return 3
-            return 3 - 2 * (y & 1)
-        if y < x:  # above diagonal: right on even row, else left
-            if x == self.max_x - 1 and y & 1 == 0:
-                # exception: move down at end of even row
-                return 1
-            return 3 - (y & 1)
-        else:  # below diagonal: up on even column, else down
-            if y == self.max_y - 1 and x & 1:
-                # exception: move right at and of odd column
-                return 3
-            return 1 - (1 - (x & 1))
+            return 1
+        if y & 1:  # odd rows: right
+            if x == self.max_x - 1:
+                return 0
+            return 3
+        else:  # even rows: left
+            if x == 1 and y > 0:
+                return 0
+            return 2
+
+    def calculate_first_step(self):
+        """Corrects the first movement, in case the initial snake
+        direction is opposite to the optimal solution in cases where it
+        does not resolve itself.
+
+        Assumes the snake does not start on edges.
+
+        In particular the problems to be solved are:
+            odd rows with direction left
+            even rows with direction right
+        In both cases, the snake can just move up under the assumption
+        mentioned above.
+
+        Returns:
+             1 if the snake should move up
+            -1 otherwise
+        """
+        y, x = self.snake.head
+        if (y & 1 and self.snake.dir == 2) or self.snake.dir == 3:
+            return 0
+        return -1
 
 
 if __name__ == '__main__':
-    snake = Snake(10)
+    snake = Snake()
     ui = SnakeUI(snake)
     SystematicSnake(snake, ui)
     plt.show()

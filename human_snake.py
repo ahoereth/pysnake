@@ -34,10 +34,20 @@ class HumanSnake:
             ret = self.snake.step(self.actions[key])
             if ret != 0:
                 print('You {}!'.format('win' if ret > 0 else 'lose'))
+                if '--store' in sys.argv:
+                    # writes the score into the output file
+                    try:
+                        fname = 'participant{}.csv'.format(
+                            sys.argv[sys.argv.index('--store') + 1])
+                    except IndexError:
+                        fname = 'participant_unspecified.csv'
+                    with open(fname, 'a') as f:
+                        print(self.snake.highscore, self.snake.steps, sep=',',
+                              file=f)
                 sys.exit()
 
 
 if __name__ == '__main__':
-    snake = Snake(size=4)
+    snake = Snake()
     ui = SnakeUI(snake)
     HumanSnake(snake, ui)

@@ -1,9 +1,12 @@
+import atexit
 import itertools
+import sys
 
 import numpy as np
-from matplotlib import pyplot as plt  # noqa: E402
-from matplotlib import animation as animation  # noqa: E402
-from matplotlib import image as image  # noqa: E402
+from matplotlib import pyplot as plt
+from matplotlib import animation as animation
+from matplotlib import image as image
+from matplotlib.animation import FFMpegFileWriter as Writer
 
 
 class SnakeUI(animation.TimedAnimation):
@@ -14,8 +17,7 @@ class SnakeUI(animation.TimedAnimation):
             snake: A Snake simulation instance.
         """
         self.snake = snake
-
-        self.fig = plt.figure()
+        self.fig = plt.figure(figsize=(4, 4))
         axes = self.fig.add_subplot(1, 1, 1)
 
         axes.set_xlim([-0.5, self.snake.board.shape[1] - 0.5])
@@ -29,7 +31,20 @@ class SnakeUI(animation.TimedAnimation):
         self.img = axes.add_image(axesImage)
         self.img.set_data(self.snake.board)
 
-        super().__init__(self.fig, interval=500, blit=True)
+        self.save_movie = '--video' in sys.argv
+        if self.save_movie:
+            try:
+                name = sys.argv[sys.argv.index('--video') + 1]
+            except IndexError:
+                name = 'pysnake.mp4'
+
+            self.writer = Writer()
+            self.writer.setup(self.fig, name, 72)
+
+            atexit.register(self.finish)
+
+        super().__init__(self.fig, interval=100 if not self.save_movie else 50,
+                         blit=True)
 
     def new_frame_seq(self):
         """Counts frames infinitely."""
@@ -41,3 +56,9 @@ class SnakeUI(animation.TimedAnimation):
     def _draw_frame(self, frame_no):
         """Updates the current board."""
         self.img.set_data(self.snake.board)
+        if self.save_movie:
+            self.writer.grab_frame()
+
+    def finish(self):
+        if self.save_movie:
+            self.writer.finish()
