@@ -1,6 +1,7 @@
 import itertools
 import collections
 import sys
+import pickle
 from os import path
 from multiprocessing import Pool
 import os
@@ -16,8 +17,8 @@ from snake_ui import SnakeUI
 
 
 MAX_GAME_STEPS = 100
-MAX_INDIVIDUALS = 100
-MAX_GENERATIONS = 20  # 00
+MAX_INDIVIDUALS = 20
+MAX_GENERATIONS = 2  # 00
 
 HIDDEN = 8
 LAYERS = [Snake.size**2 + 1, HIDDEN, Snake.directions]
@@ -49,6 +50,14 @@ class EvolveSnake:
         output_layer = tf.nn.relu(tf.matmul(h1, w2), name='output')
         action = tf.argmax(tf.nn.softmax(output_layer), 1)
         return board, action
+
+    def get_action(self, board):
+        board, action = self.init_network()
+        with tf.Session() as sess:
+            sess.run(tf.global_variables_initializer())
+            act = sess.run(action, {board: [np.append(self.snake.board.flat, 1)]})
+
+        return act
 
     def __call__(self):
         # run session here and return results
@@ -148,17 +157,18 @@ class SnakeTrainer:
         :return: a new generation to be used
         """
         # sort for highscore per step
-        ranked_individuals = sorted(results, key=lambda x: x[1] / x[2],
-                                    reverse=True)
+        ranked_individuals = sorted(results, key=lambda x: x[1] / x[2] if x[2] is not 0 else x[1], reverse=True)
 
         best_individuals = [i[0] for i in ranked_individuals[0:KEEP]]
         offsprings = self.get_offsprings(best_individuals)
         spawning = MAX_INDIVIDUALS - KEEP - len(offsprings)
 
+        new = []
         if (spawning > 0):
             new = self.generate_snakes(spawning)
 
         new_gen = self.generate_snakes(best_individuals + offsprings) + new
+
         return new_gen
 
 
@@ -173,9 +183,8 @@ def save_snake(results, keep=5, generation=0):
     """
     ranked_individuals = sorted(results, key=lambda x: x[1] / x[2], reverse=True)
     # only save the best performing snake
-    print(ranked_individuals[0:keep])
-    with open(CKPTNAME+str(generation)+'.np', 'wb') as f:
-        np.savetxt(f, np.array(ranked_individuals[0:keep])) # TODO: fix this somehow :( maybe formatting?
+    with open(CKPTNAME+str(generation)+'.np', 'ab') as f:
+        pickle.dump(np.asarray(ranked_individuals[0:keep]), f)
 
 
 def load_snake(file):
@@ -184,7 +193,7 @@ def load_snake(file):
     :param file: the file to be loaded
     :return: an array containing the files input
     """
-    return np.loadtxt(file)
+    return pickle.load(open(file, 'rb'))
 
 
 def play_snake(snake):
@@ -199,18 +208,17 @@ def replay_snake(snake_file, individual=0):
     :param individual the individual from the file
     """
 
-    weights_flat = load_snake(snake_file)[individual]
+    weights_flat = np.array(load_snake(snake_file)[individual])
     weights = []
-    start_w = 0
 
-    for i in range(LAYERS):  # unflatten the weights
-        lx, ly = LAYERS[i].shape
-        layer = np.array(weights_flat)[start_w: start_w + lx * ly].reshape(LAYERS[i].shape)
-        start_w = start_w + lx * ly
+    for i in range(weights_flat.shape[0] - 1):
+        print(i)
+        print(weights_flat[individual][i])
+        layer = weights_flat[individual][i]
         weights.append(layer)
 
-    game = Snake(Snake.board, walled=True)
-    player = EvolveSnake(game, weights)
+    player = EvolveSnake(Snake(), weights)
+    game = Snake()
 
     def step():
         ret = game.step(player.get_action(game.board))
