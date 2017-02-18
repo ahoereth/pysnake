@@ -19,8 +19,11 @@ class SystematicSnake:
         self.snake = snake
         self.max_y, self.max_x = self.snake.board.shape
         self.first_turn = True
-        self.timer = ui.fig.canvas.new_timer(300 if len(sys.argv) <= 1 else 50,
-                                             [(self, [], {})])
+        store = '--store' in sys.argv
+        video = '--video' in sys.argv
+        refresh = 300 if not store else 1
+        refresh = 50 if video else refresh
+        self.timer = ui.fig.canvas.new_timer(refresh, [(self, [], {})])
         self.timer.start()
 
     def __call__(self):
