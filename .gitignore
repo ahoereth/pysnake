@@ -4,6 +4,7 @@ __pycache__/
 ckpts/
 
 *.log
+*.mp4
 *.np
 *.swp
 *.zip
