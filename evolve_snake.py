@@ -16,15 +16,15 @@ from snake import Snake
 from snake_ui import SnakeUI
 
 
-MAX_GAME_STEPS = 100
-MAX_INDIVIDUALS = 20
-MAX_GENERATIONS = 2  # 00
+MAX_GAME_STEPS = 200
+MAX_INDIVIDUALS = 2000
+MAX_GENERATIONS = 30000  # 00
 
-HIDDEN = 8
-LAYERS = [Snake.size**2 + 1, HIDDEN, Snake.directions]
+
+LAYERS = [Snake.size**2 + 1, 12, 8, Snake.directions]
 
 MUTATIONRATE = 0.001
-KEEP = 10  # The permutation of this is also kept in the 'children'
+KEEP = 200  # The permutation of this is also kept in the 'children'
 
 NUM_POOLS = 4
 PRECISION = tf.float64
@@ -44,10 +44,12 @@ class EvolveSnake:
 
     def init_network(self):
         board = tf.placeholder(PRECISION, (None, self.layers[0]))
-        w1 = tf.Variable(self.weights[0], name='hidden_weights')
-        h1 = tf.nn.relu(tf.matmul(board, w1), name='hidden_layer')
-        w2 = tf.Variable(self.weights[1], name='output_weights')
-        output_layer = tf.nn.relu(tf.matmul(h1, w2), name='output')
+        w1 = tf.Variable(self.weights[0], name='hidden_weights1')
+        h1 = tf.nn.relu(tf.matmul(board, w1), name='hidden_layer1')
+        w2 = tf.Variable(self.weights[1], name='hidden_weights2')
+        h2 = tf.nn.relu(tf.matmul(h1, w2), name='hidden_layer2')
+        w3 = tf.Variable(self.weights[2], name='output_weights')
+        output_layer = tf.nn.relu(tf.matmul(h2, w3), name='output')
         action = tf.argmax(tf.nn.softmax(output_layer), 1)
         return board, action
 
@@ -248,9 +250,14 @@ def main(args):
                 results = p.map(play_snake, tensor_snakes)
             tensor_snakes = trainer.build_next_generation(results)
 
-        for w, h, s in results:
-            print(h, s)
+            if i % 4 == 0:
+                for w, h, s in sorted(results, key=lambda x: x[1] / x[2], reverse=True)[0:4]:
+                    print('Best of Gen ', i, ':', h, s)
+            # always save the best per generation
+            save_snake(sorted(results, key=lambda x: x[1] / x[2], reverse=True)[0], i, keep=1)
+            print('--------------------------------------')
 
+        # in the end save the best 5
         save_snake(results, 5)
 
     elif len(args) > 0 and args[0] == 'play':
