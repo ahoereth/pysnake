@@ -201,16 +201,17 @@ def play(checkpoint=None):
     game = Snake()
 
     def step():
-        ret = game.step(player.get_action(game.board))
+        action = player.get_action(game.board)
+        ret = game.step(action)
         if ret:
-            print('You {}'.format('win' if ret > 0 else 'lose'))
+            print('{},{}'.format(game.steps, game.highscore))
             try:
                 return 0
             finally:
                 sys.exit()
 
     ui = SnakeUI(game)
-    timer = ui.fig.canvas.new_timer(500, [(step, [], {})])
+    timer = ui.fig.canvas.new_timer(50, [(step, [], {})])
     timer.start()
     plt.show()
 
