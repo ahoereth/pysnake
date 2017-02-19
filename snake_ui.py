@@ -17,7 +17,7 @@ class SnakeUI(animation.TimedAnimation):
             snake: A Snake simulation instance.
         """
         self.snake = snake
-        self.fig = plt.figure(figsize=(4, 4))
+        self.fig = plt.figure(figsize=(4, 4), dpi=72)
         axes = self.fig.add_subplot(1, 1, 1)
 
         axes.set_xlim([-0.5, self.snake.board.shape[1] - 0.5])

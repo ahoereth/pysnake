@@ -29,6 +29,7 @@ class Snake:
         self.size = Snake.size
 
         self.steps = 0
+        self.highscore = 0
         self.board = np.ones((self.size, self.size)) * BG
         r, c = rand.randint(1, self.size - 1), rand.randint(1, self.size - 1)
         self.body = [np.ravel_multi_index((r, c), self.board.shape)]
@@ -77,14 +78,16 @@ class Snake:
             r = r % self.size
 
         head = np.ravel_multi_index((r, c), self.board.shape)
-        if self.board.flat[head] == FOOD:  # caught a special dot
+        if self.board.flat[head] == FOOD:  # scored
+            self.highscore += 1
             # check win condition
             new_location = np.flatnonzero(self.board == BG)
-            if(len(new_location) == 0):
+            if len(new_location) == 0:
                 return 1
             food = rand.choice(new_location)
             self.board.flat[food] = FOOD
-        elif len(self.body) >= self.minsnakelen:  # otherwise cut off tail
+
+        if len(self.body) > (self.highscore + self.minsnakelen):  # cut tail
             self.board.flat[self.body.pop(0)] = BG
 
         if self.board.flat[head] == SNAKE:  # died
@@ -94,11 +97,6 @@ class Snake:
         self.body.append(head)
         self.board.flat[head] = SNAKE if not self.markhead else HEAD
         return 0
-
-    @property
-    def highscore(self):
-        """The highscore is the number of foods eaten."""
-        return len(self.body) - self.minsnakelen
 
     @property
     def head(self, rc=True):
