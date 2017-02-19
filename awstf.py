@@ -14,17 +14,30 @@ AMIS = {
 }
 
 
-COMMAND = '''\
-docker-machine create {name} \\
-    --driver amazonec2 \\
-    --amazonec2-region {region} \\
-    --amazonec2-zone {zone} \\
-    --amazonec2-ami {ami} \\
-    --amazonec2-instance-type {instance_type} \\
-    --amazonec2-security-group {security_group} \\
-    --amazonec2-request-spot-instance \\
-    --amazonec2-spot-price {price_max:.4f}\
-'''
+def build_command(
+    name, region, zone, ami, instance_type, security_group, price_max,
+):
+    cmd = '''docker-machine create {name} \\
+        --driver amazonec2 \\
+        --amazonec2-region {region} \\
+        --amazonec2-zone {zone} \\
+        --amazonec2-instance-type {instance_type} \\
+        --amazonec2-security-group {security_group} \\
+        --amazonec2-request-spot-instance \\
+        --amazonec2-spot-price {price_max:.4f}\
+    '''.format(
+        name=name,
+        region=region,
+        zone=zone,
+        instance_type=instance_type,
+        security_group=security_group,
+        price_max=price_max,
+    )
+
+    if ami is not None:
+        cmd += '\\\n        --amazonec2-ami {ami}'.format(ami)
+
+    return cmd
 
 
 useast1 = boto3.client('ec2', region_name='us-east-1')
@@ -54,20 +67,22 @@ def get_avg_price(instance_type, hours=5):
 
 def main(machine_name, instance_type, security_group, max_price_overhead, hours):
     zone, price = get_avg_price(args.instance_type, hours=args.hours)[0]
+    ami = (instance_type, zone[:-1])
+
     print('# Instances of type {instance_type} are cheapest in region {zone} '
           'with an average price of US${price:.4f} over the last {hours} hours.'
           .format(instance_type=args.instance_type, zone=zone, price=price,
                   hours=args.hours))
     print('# Issue the following command to launch a spot instance '
           'or call this script with eval $(SCRIPT). \n')
-    print(COMMAND.format(
+    print(build_command(
         name=machine_name,
         region=zone[:-1],
         zone=zone[-1],
         instance_type=instance_type,
         security_group=security_group,
         price_max=price + max_price_overhead,
-        ami=AMIS[(instance_type, zone[:-1])],
+        ami=AMIS[ami] if ami in AMIS else None,
     ))
 
 
