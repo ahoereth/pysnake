@@ -16,20 +16,22 @@ from snake import Snake
 from snake_ui import SnakeUI
 
 
-MAX_GAME_STEPS = 200
-MAX_INDIVIDUALS = 2000
-MAX_GENERATIONS = 30000  # 00
+MAX_GAME_STEPS = 300
+MAX_INDIVIDUALS = 1000
+MAX_GENERATIONS = 3000  # 00
 
 
 LAYERS = [Snake.size**2 + 1, 12, 8, Snake.directions]
 
 MUTATIONRATE = 0.001
-KEEP = 200  # The permutation of this is also kept in the 'children'
+KEEP = 15  # The permutation of this is also kept in the 'children'
 
 NUM_POOLS = 4
 PRECISION = tf.float64
 
 CKPTNAME = 'evo_snake-'
+
+perf = lambda x: 10*x[1] + x[2]
 
 
 class EvolveSnake:
@@ -159,7 +161,7 @@ class SnakeTrainer:
         :return: a new generation to be used
         """
         # sort for highscore per step
-        ranked_individuals = sorted(results, key=lambda x: x[1] / x[2] if x[2] is not 0 else x[1], reverse=True)
+        ranked_individuals = sorted(results, key=perf, reverse=True)
 
         best_individuals = [i[0] for i in ranked_individuals[0:KEEP]]
         offsprings = self.get_offsprings(best_individuals)
@@ -183,10 +185,10 @@ def save_snake(results, keep=5, generation=0):
     :param generation: the generation count to be used (default = 0)
     :return: Nothing! But saves the best x snakes in a file ;)
     """
-    ranked_individuals = sorted(results, key=lambda x: x[1] / x[2], reverse=True)
+
     # only save the best performing snake
     with open(CKPTNAME+str(generation)+'.np', 'ab') as f:
-        pickle.dump(np.asarray(ranked_individuals[0:keep]), f)
+        pickle.dump(np.asarray(results[0:keep]), f)
 
 
 def load_snake(file):
@@ -249,16 +251,18 @@ def main(args):
             with Pool(NUM_POOLS) as p:
                 results = p.map(play_snake, tensor_snakes)
             tensor_snakes = trainer.build_next_generation(results)
+            results_sorted = sorted(results, key=perf, reverse=True)
 
             if i % 4 == 0:
-                for w, h, s in sorted(results, key=lambda x: x[1] / x[2], reverse=True)[0:4]:
+                for w, h, s in results_sorted[0:4]:
                     print('Best of Gen ', i, ':', h, s)
             # always save the best per generation
-            save_snake(sorted(results, key=lambda x: x[1] / x[2], reverse=True)[0], i, keep=1)
+
+            save_snake(results_sorted, keep=1, generation=i)
             print('--------------------------------------')
 
         # in the end save the best 5
-        save_snake(results, 5)
+        save_snake(results_sorted, keep=1, generation='LAST')
 
     elif len(args) > 0 and args[0] == 'play':
 
