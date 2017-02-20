@@ -16,6 +16,7 @@ AMIS = {
 
 def build_command(
     name, region, zone, ami, instance_type, security_group, price_max,
+    key_id=None, key_secret=None,
 ):
     cmd = '''docker-machine create {name} \\
         --driver amazonec2 \\
@@ -35,7 +36,11 @@ def build_command(
     )
 
     if ami is not None:
-        cmd += '\\\n        --amazonec2-ami {ami}'.format(ami)
+        cmd += '\\\n        --amazonec2-ami {} '.format(ami)
+
+    if key_id is not None:
+        cmd += '\\\n        --amazonec2-access-key {} '.format(key_id)
+        cmd += '\\\n        --amazonec2-secret-key {} '.format(key_secret)
 
     return cmd
 
@@ -87,6 +92,8 @@ def main(
         security_group=security_group,
         price_max=price + max_price_overhead,
         ami=AMIS[ami] if ami in AMIS else None,
+        key_id=key_id,
+        key_secret=key_secret,
     ))
 
 
