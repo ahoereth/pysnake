@@ -47,7 +47,7 @@ localhost$ docker-machine scp ./yourscript.py machinename:/home/ubuntu/
 localhost$ docker-machine ssh machinename
 awsremote$ sudo nvidia-docker run -it -v /home/ubuntu:/workdir tensorflow/tensorflow:latest-gpu-py3 python3 /workdir/yourscript.py
 ```
-Or if you wakt to run the `evolve_snake.py` use the following command after copying over the relevant source files:
+Or if you want to run the `evolve_snake.py` use the following command after copying over the relevant source files:
 ```
 sudo docker run -it -v /home/ubuntu:/workdir tensorflow/tensorflow:latest-py3 python3 /workdir/evolve_snake.py
 ```
