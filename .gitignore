@@ -8,5 +8,6 @@ ckpts/
 *.np
 *.swp
 *.zip
+*.txt
 _tmp*
 .autoenv*

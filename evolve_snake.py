@@ -17,7 +17,7 @@ from snake_ui import SnakeUI
 
 
 MAX_GAME_STEPS = 300
-MAX_INDIVIDUALS = 1000
+MAX_INDIVIDUALS = 10
 MAX_GENERATIONS = 3000  # 00
 
 
@@ -183,12 +183,30 @@ def save_snake(results, keep=5, generation=0):
     :param results: results in the form of [weights, highscore, step]
     :param keep: the number of snakes to be saved
     :param generation: the generation count to be used (default = 0)
-    :return: Nothing! But saves the best x snakes in a file ;)
+    :return: Nothing! But saves the best x snakes in a file
     """
 
     # only save the best performing snake
     with open(CKPTNAME+str(generation)+'.np', 'ab') as f:
         pickle.dump(np.asarray(results[0:keep]), f)
+
+
+def save_progress(results, generation=0, keep=5, print_c=False):
+    """
+    Saves the current performance values to a file.
+
+    :param results: the current results
+    :param printC: True if the results should also be printed to the commandline
+    :return: Nothing! But saves the best x snakes performances in a file
+    """
+    with open("evo_log.txt", "a") as log:
+        for w, h, s in results[0:4]:
+            log.write('Best of Gen ' + str(generation) + ': ' + str(h) + ' ' + str(s) + '\n')
+            if print_c:
+                print('Best of Gen ', generation, ':', h, s)
+        log.write('-------------------------------------- \n')
+        if print_c:
+            print('--------------------------------------')
 
 
 def load_snake(file):
@@ -254,14 +272,11 @@ def main(args):
             results_sorted = sorted(results, key=perf, reverse=True)
 
             if i % 4 == 0:
-                for w, h, s in results_sorted[0:4]:
-                    print('Best of Gen ', i, ':', h, s)
-            # always save the best per generation
+                save_progress(results_sorted, generation=i)
 
-            save_snake(results_sorted, keep=1, generation=i)
-            print('--------------------------------------')
+        # always save the best per generation
+        save_snake(results_sorted, keep=1, generation=i)
 
-        # in the end save the best 5
         save_snake(results_sorted, keep=1, generation='LAST')
 
     elif len(args) > 0 and args[0] == 'play':
