@@ -17,9 +17,9 @@ from snake_ui import SnakeUI
 
 
 MAX_GAME_STEPS = 300
-MAX_INDIVIDUALS = 10
+MAX_INDIVIDUALS = 500
 MAX_GENERATIONS = 3000  # 00
-
+WSPREAD = 3
 
 LAYERS = [Snake.size**2 + 1, 12, 8, Snake.directions]
 
@@ -41,7 +41,7 @@ class EvolveSnake:
         self.layers = LAYERS
         self.weights = weights
         if self.weights is None:
-            self.weights = [np.random.random((size, self.layers[i + 1]))
+            self.weights = [WSPREAD*np.random.random((size, self.layers[i + 1]))
                             for i, size in enumerate(self.layers[:-1])]
 
     def init_network(self):
