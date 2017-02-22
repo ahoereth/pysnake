@@ -16,20 +16,22 @@ from snake import Snake
 from snake_ui import SnakeUI
 
 
-MAX_GAME_STEPS = 100
-MAX_INDIVIDUALS = 20
-MAX_GENERATIONS = 2  # 00
+MAX_GAME_STEPS = 300
+MAX_INDIVIDUALS = 500
+MAX_GENERATIONS = 3000  # 00
+WSPREAD = 3
 
-HIDDEN = 8
-LAYERS = [Snake.size**2 + 1, HIDDEN, Snake.directions]
+LAYERS = [Snake.size**2 + 1, 12, 8, Snake.directions]
 
 MUTATIONRATE = 0.001
-KEEP = 10  # The permutation of this is also kept in the 'children'
+KEEP = 15  # The permutation of this is also kept in the 'children'
 
 NUM_POOLS = 4
 PRECISION = tf.float64
 
 CKPTNAME = 'evo_snake-'
+
+perf = lambda x: 10*x[1] + x[2]
 
 
 class EvolveSnake:
@@ -39,15 +41,17 @@ class EvolveSnake:
         self.layers = LAYERS
         self.weights = weights
         if self.weights is None:
-            self.weights = [np.random.random((size, self.layers[i + 1]))
+            self.weights = [WSPREAD*np.random.random((size, self.layers[i + 1]))
                             for i, size in enumerate(self.layers[:-1])]
 
     def init_network(self):
         board = tf.placeholder(PRECISION, (None, self.layers[0]))
-        w1 = tf.Variable(self.weights[0], name='hidden_weights')
-        h1 = tf.nn.relu(tf.matmul(board, w1), name='hidden_layer')
-        w2 = tf.Variable(self.weights[1], name='output_weights')
-        output_layer = tf.nn.relu(tf.matmul(h1, w2), name='output')
+        w1 = tf.Variable(self.weights[0], name='hidden_weights1')
+        h1 = tf.nn.relu(tf.matmul(board, w1), name='hidden_layer1')
+        w2 = tf.Variable(self.weights[1], name='hidden_weights2')
+        h2 = tf.nn.relu(tf.matmul(h1, w2), name='hidden_layer2')
+        w3 = tf.Variable(self.weights[2], name='output_weights')
+        output_layer = tf.nn.relu(tf.matmul(h2, w3), name='output')
         action = tf.argmax(tf.nn.softmax(output_layer), 1)
         return board, action
 
@@ -157,7 +161,7 @@ class SnakeTrainer:
         :return: a new generation to be used
         """
         # sort for highscore per step
-        ranked_individuals = sorted(results, key=lambda x: x[1] / x[2] if x[2] is not 0 else x[1], reverse=True)
+        ranked_individuals = sorted(results, key=perf, reverse=True)
 
         best_individuals = [i[0] for i in ranked_individuals[0:KEEP]]
         offsprings = self.get_offsprings(best_individuals)
@@ -179,12 +183,30 @@ def save_snake(results, keep=5, generation=0):
     :param results: results in the form of [weights, highscore, step]
     :param keep: the number of snakes to be saved
     :param generation: the generation count to be used (default = 0)
-    :return: Nothing! But saves the best x snakes in a file ;)
+    :return: Nothing! But saves the best x snakes in a file
     """
-    ranked_individuals = sorted(results, key=lambda x: x[1] / x[2], reverse=True)
+
     # only save the best performing snake
     with open(CKPTNAME+str(generation)+'.np', 'ab') as f:
-        pickle.dump(np.asarray(ranked_individuals[0:keep]), f)
+        pickle.dump(np.asarray(results[0:keep]), f)
+
+
+def save_progress(results, generation=0, keep=5, print_c=False):
+    """
+    Saves the current performance values to a file.
+
+    :param results: the current results
+    :param printC: True if the results should also be printed to the commandline
+    :return: Nothing! But saves the best x snakes performances in a file
+    """
+    with open("evo_log.txt", "a") as log:
+        for w, h, s in results[0:4]:
+            log.write('Best of Gen ' + str(generation) + ': ' + str(h) + ' ' + str(s) + '\n')
+            if print_c:
+                print('Best of Gen ', generation, ':', h, s)
+        log.write('-------------------------------------- \n')
+        if print_c:
+            print('--------------------------------------')
 
 
 def load_snake(file):
@@ -247,11 +269,15 @@ def main(args):
             with Pool(NUM_POOLS) as p:
                 results = p.map(play_snake, tensor_snakes)
             tensor_snakes = trainer.build_next_generation(results)
+            results_sorted = sorted(results, key=perf, reverse=True)
 
-        for w, h, s in results:
-            print(h, s)
+            if i % 4 == 0:
+                save_progress(results_sorted, generation=i)
 
-        save_snake(results, 5)
+        # always save the best per generation
+        save_snake(results_sorted, keep=1, generation=i)
+
+        save_snake(results_sorted, keep=1, generation='LAST')
 
     elif len(args) > 0 and args[0] == 'play':
 

@@ -3,7 +3,11 @@ __pycache__/
 .venv/
 ckpts/
 
+*.log
+*.mp4
 *.np
 *.swp
+*.zip
+*.txt
 _tmp*
 .autoenv*

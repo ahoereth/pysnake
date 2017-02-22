@@ -14,25 +14,43 @@ AMIS = {
 }
 
 
-COMMAND = '''\
-docker-machine create {name} \\
-    --driver amazonec2 \\
-    --amazonec2-region {region} \\
-    --amazonec2-zone {zone} \\
-    --amazonec2-ami {ami} \\
-    --amazonec2-instance-type {instance_type} \\
-    --amazonec2-security-group {security_group} \\
-    --amazonec2-request-spot-instance \\
-    --amazonec2-spot-price {price_max:.4f}\
-'''
+def build_command(
+    name, region, zone, ami, instance_type, security_group, price_max,
+    key_id=None, key_secret=None,
+):
+    cmd = '''docker-machine create {name} \\
+        --driver amazonec2 \\
+        --amazonec2-region {region} \\
+        --amazonec2-zone {zone} \\
+        --amazonec2-instance-type {instance_type} \\
+        --amazonec2-security-group {security_group} \\
+        --amazonec2-request-spot-instance \\
+        --amazonec2-spot-price {price_max:.4f}\
+    '''.format(
+        name=name,
+        region=region,
+        zone=zone,
+        instance_type=instance_type,
+        security_group=security_group,
+        price_max=price_max,
+    )
+
+    if ami is not None:
+        cmd += '\\\n        --amazonec2-ami {} '.format(ami)
+
+    if key_id is not None:
+        cmd += '\\\n        --amazonec2-access-key {} '.format(key_id)
+        cmd += '\\\n        --amazonec2-secret-key {} '.format(key_secret)
+
+    return cmd
 
 
-useast1 = boto3.client('ec2', region_name='us-east-1')
-euwest1 = boto3.client('ec2', region_name='eu-west-1')
-clients = [useast1, euwest1]
+def get_avg_price(instance_type, hours=5, key_id=None, key_secret=None):
+    kwargs = {'aws_access_key_id': key_id, 'aws_secret_access_key': key_secret}
+    useast1 = boto3.client('ec2', region_name='us-east-1', **kwargs)
+    euwest1 = boto3.client('ec2', region_name='eu-west-1', **kwargs)
+    clients = [useast1, euwest1]
 
-
-def get_avg_price(instance_type, hours=5):
     prices = []
     for client in clients:
         zones = client.describe_availability_zones()
@@ -52,22 +70,30 @@ def get_avg_price(instance_type, hours=5):
     return sorted(prices, key=lambda t: t[1])
 
 
-def main(machine_name, instance_type, security_group, max_price_overhead, hours):
-    zone, price = get_avg_price(args.instance_type, hours=args.hours)[0]
+def main(
+    machine_name, instance_type, security_group, max_price_overhead, hours,
+    key_id, key_secret,
+):
+    averages = get_avg_price(instance_type, args.hours, key_id, key_secret)
+    zone, price = averages[0]
+    ami = (instance_type, zone[:-1])
+
     print('# Instances of type {instance_type} are cheapest in region {zone} '
           'with an average price of US${price:.4f} over the last {hours} hours.'
           .format(instance_type=args.instance_type, zone=zone, price=price,
                   hours=args.hours))
     print('# Issue the following command to launch a spot instance '
           'or call this script with eval $(SCRIPT). \n')
-    print(COMMAND.format(
+    print(build_command(
         name=machine_name,
         region=zone[:-1],
         zone=zone[-1],
         instance_type=instance_type,
         security_group=security_group,
         price_max=price + max_price_overhead,
-        ami=AMIS[(instance_type, zone[:-1])],
+        ami=AMIS[ami] if ami in AMIS else None,
+        key_id=key_id,
+        key_secret=key_secret,
     ))
 
 
@@ -78,5 +104,7 @@ if __name__ == '__main__':
     parser.add_argument('-sg', '--security-group', default='docker-machine')
     parser.add_argument('--max-price-overhead', default=.1, type=float)
     parser.add_argument('--hours', default=5, type=float)
+    parser.add_argument('--key-id')
+    parser.add_argument('--key-secret')
     args = parser.parse_args()
     main(**vars(args))
