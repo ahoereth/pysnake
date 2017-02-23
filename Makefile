@@ -6,3 +6,6 @@ sys:
 
 q:
 	for i in $$(seq 1 $(n)); do python q_snake.py play $(p) >> q.txt; done
+
+human:
+	for i in $$(seq 1 4); do python human_snake.py --store documentation/humans > /dev/null ; done

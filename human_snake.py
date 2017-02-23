@@ -38,10 +38,10 @@ class HumanSnake:
                     if '--store' in sys.argv:
                         # writes the score into the output file
                         try:
-                            fname = 'participant{}.csv'.format(
+                            fname = '{}.csv'.format(
                                 sys.argv[sys.argv.index('--store') + 1])
                         except IndexError:
-                            fname = 'participant_unspecified.csv'
+                            fname = 'human_unknown.csv'
                         with open(fname, 'a') as f:
                             print(self.snake.highscore, self.snake.steps,
                                   sep=',', file=f)
