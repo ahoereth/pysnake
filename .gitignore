@@ -11,3 +11,5 @@ ckpts/
 *.txt
 _tmp*
 .autoenv*
+
+.DS_Store

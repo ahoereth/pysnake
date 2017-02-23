@@ -5,7 +5,7 @@ import pickle
 from os import path
 from multiprocessing import Pool
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # hacky way for tensorflow to ignore the fact that I didn't build it locally
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # hacky way for tensorflow to ignore the fact that I didn't build it locally
 
 import tensorflow as tf
 import numpy as np
@@ -17,21 +17,21 @@ from snake_ui import SnakeUI
 
 
 MAX_GAME_STEPS = 300
-MAX_INDIVIDUALS = 500
-MAX_GENERATIONS = 3000  # 00
-WSPREAD = 3
+MAX_INDIVIDUALS = 150
+MAX_GENERATIONS = 10000  # 00
 
-LAYERS = [Snake.size**2 + 1, 12, 8, Snake.directions]
+LAYERS = [4 + 1, 5, Snake.directions]
 
+WSPREAD = 5
 MUTATIONRATE = 0.001
-KEEP = 15  # The permutation of this is also kept in the 'children'
+KEEP = 10  # The permutation of this is also kept in the 'children'
 
-NUM_POOLS = 4
+NUM_POOLS = 3
 PRECISION = tf.float64
 
 CKPTNAME = 'evo_snake-'
 
-perf = lambda x: 10*x[1] + x[2]
+perf = lambda x: x[1] + np.sqrt(x[2])
 
 
 class EvolveSnake:
@@ -41,36 +41,58 @@ class EvolveSnake:
         self.layers = LAYERS
         self.weights = weights
         if self.weights is None:
-            self.weights = [WSPREAD*np.random.random((size, self.layers[i + 1]))
+            self.weights = [2*WSPREAD*np.random.random((size, self.layers[i + 1])) - WSPREAD
                             for i, size in enumerate(self.layers[:-1])]
 
     def init_network(self):
-        board = tf.placeholder(PRECISION, (None, self.layers[0]))
+        # board = tf.placeholder(PRECISION, (None, self.layers[0]))
+        head_env = tf.placeholder(PRECISION, (None, self.layers[0]))
         w1 = tf.Variable(self.weights[0], name='hidden_weights1')
-        h1 = tf.nn.relu(tf.matmul(board, w1), name='hidden_layer1')
+        h1 = tf.nn.relu(tf.matmul(head_env, w1), name='hidden_layer1')
         w2 = tf.Variable(self.weights[1], name='hidden_weights2')
-        h2 = tf.nn.relu(tf.matmul(h1, w2), name='hidden_layer2')
-        w3 = tf.Variable(self.weights[2], name='output_weights')
-        output_layer = tf.nn.relu(tf.matmul(h2, w3), name='output')
+        # h2 = tf.nn.relu(tf.matmul(h1, w2), name='hidden_layer2')
+        # w3 = tf.Variable(self.weights[2], name='output_weights')
+        output_layer = tf.nn.relu(tf.matmul(h1, w2), name='output')
         action = tf.argmax(tf.nn.softmax(output_layer), 1)
-        return board, action
+        return head_env, action
 
     def get_action(self, board):
-        board, action = self.init_network()
+        head_env, action = self.init_network()
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            act = sess.run(action, {board: [np.append(self.snake.board.flat, 1)]})
+            act = sess.run(action, {head_env: [np.append(self.get_head_env(), 1)]})
 
         return act
 
+    def get_head_env(self, sight=1):
+        """
+        Gives the flattened environment around the snakehead.
+
+        :param sight: currently only 1 is supported so direct neighbors
+        :return: the 4 neighborhood in flattened form
+        """
+        hposx, hposy = self.snake.head
+
+        x_ulimit = hposx < self.snake.size - 1
+        y_ulimit = hposy < self.snake.size - 1
+        x_llimit = hposx > 0
+        y_llimit = hposy > 0
+
+        res = np.array([self.snake.board[hposx + 1 if x_ulimit else 0, hposy],
+                       self.snake.board[hposx - 1 if x_llimit else 0, hposy],
+                       self.snake.board[hposx, hposy + 1 if y_ulimit else 0],
+                       self.snake.board[hposx, hposy - 1 if y_llimit else 0]])
+
+        return res
+
     def __call__(self):
         # run session here and return results
-        board, action = self.init_network()
+        head_env, action = self.init_network()
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             for i in range(MAX_GAME_STEPS):
                 act = sess.run(action,
-                               {board: [np.append(self.snake.board.flat, 1)]})
+                               {head_env: [np.append(self.get_head_env(), 1)]})
                 if self.snake.step(act) == -1:
                     break
 
@@ -271,11 +293,10 @@ def main(args):
             tensor_snakes = trainer.build_next_generation(results)
             results_sorted = sorted(results, key=perf, reverse=True)
 
-            if i % 4 == 0:
-                save_progress(results_sorted, generation=i)
-
-        # always save the best per generation
-        save_snake(results_sorted, keep=1, generation=i)
+            if i % 100 == 0:
+                save_progress(results_sorted, generation=i, print_c=True)
+                # always save the best per generation
+                save_snake(results_sorted, keep=1, generation=i)
 
         save_snake(results_sorted, keep=1, generation='LAST')
 
