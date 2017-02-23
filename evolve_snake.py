@@ -22,7 +22,7 @@ MAX_GENERATIONS = 10000  # 00
 
 LAYERS = [4 + 1, 5, Snake.directions]
 
-WSPREAD = 5
+WSPREAD = 2
 MUTATIONRATE = 0.001
 KEEP = 10  # The permutation of this is also kept in the 'children'
 
@@ -31,32 +31,46 @@ PRECISION = tf.float64
 
 CKPTNAME = 'evo_snake-'
 
-perf = lambda x: x[1] + np.sqrt(x[2])
+# perf = lambda x: 20*x[1] + np.sqrt(x[2])
+perf = lambda x: x[1] + x[2]
 
 
 class EvolveSnake:
     def __init__(self, snake, weights=None):
-        """Initializes a TensorFlow graph to play snake."""
+        """
+        Initializes the EvolutionSnake.
+
+        :param snake: the snake that plays the game
+        :param weights: the weights to be used for controlling the snake
+        """
         self.snake = snake
         self.layers = LAYERS
         self.weights = weights
         if self.weights is None:
+            print('No weights')
             self.weights = [2*WSPREAD*np.random.random((size, self.layers[i + 1])) - WSPREAD
                             for i, size in enumerate(self.layers[:-1])]
 
     def init_network(self):
-        # board = tf.placeholder(PRECISION, (None, self.layers[0]))
+        """
+        Build the computational Graph for the controller network.
+
+        :return: the placeholders that have to be filled
+        """
         head_env = tf.placeholder(PRECISION, (None, self.layers[0]))
         w1 = tf.Variable(self.weights[0], name='hidden_weights1')
         h1 = tf.nn.relu(tf.matmul(head_env, w1), name='hidden_layer1')
         w2 = tf.Variable(self.weights[1], name='hidden_weights2')
-        # h2 = tf.nn.relu(tf.matmul(h1, w2), name='hidden_layer2')
-        # w3 = tf.Variable(self.weights[2], name='output_weights')
         output_layer = tf.nn.relu(tf.matmul(h1, w2), name='output')
         action = tf.argmax(tf.nn.softmax(output_layer), 1)
         return head_env, action
 
-    def get_action(self, board):
+    def get_action(self):
+        """
+        Gives tne next action that should be run by the snake.
+
+        :return: the next action of the snake
+        """
         head_env, action = self.init_network()
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
@@ -161,7 +175,7 @@ class SnakeTrainer:
                                  else flat_dad[i])
                 # Step 2: Mutation
                 if np.random.random_sample() < MUTATIONRATE:
-                    baby_flat[i] = np.random.random_sample()
+                    baby_flat[i] = 2*WSPREAD*np.random.random_sample() - WSPREAD
 
             # reshaping back into layered form
             start_w = 0
@@ -252,20 +266,12 @@ def replay_snake(snake_file, individual=0):
     :param individual the individual from the file
     """
 
-    weights_flat = np.array(load_snake(snake_file)[individual])
-    weights = []
-
-    for i in range(weights_flat.shape[0] - 1):
-        print(i)
-        print(weights_flat[individual][i])
-        layer = weights_flat[individual][i]
-        weights.append(layer)
-
+    weights = load_snake(snake_file)[individual][0]
     player = EvolveSnake(Snake(), weights)
     game = Snake()
 
     def step():
-        ret = game.step(player.get_action(game.board))
+        ret = game.step(player.get_action())
         if ret:
             print('You {}'.format('win' if ret > 0 else 'lose'))
             return 0
@@ -297,6 +303,7 @@ def main(args):
                 save_progress(results_sorted, generation=i, print_c=True)
                 # always save the best per generation
                 save_snake(results_sorted, keep=1, generation=i)
+                # replay_controller(results_sorted[0][0])
 
         save_snake(results_sorted, keep=1, generation='LAST')
 
