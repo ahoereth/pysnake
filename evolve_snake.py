@@ -267,8 +267,8 @@ def replay_snake(snake_file, individual=0):
     """
 
     weights = load_snake(snake_file)[individual][0]
-    player = EvolveSnake(Snake(), weights)
     game = Snake()
+    player = EvolveSnake(game, weights)
 
     def step():
         ret = game.step(player.get_action())
