@@ -16,9 +16,9 @@ from snake import Snake
 from snake_ui import SnakeUI
 
 
-MAX_GAME_STEPS = 300
-MAX_INDIVIDUALS = 150
-MAX_GENERATIONS = 10000  # 00
+MAX_GAME_STEPS = 200
+MAX_INDIVIDUALS = 200
+MAX_GENERATIONS = 1000  # 00
 
 LAYERS = [4 + 1, 5, Snake.directions]
 
@@ -47,7 +47,6 @@ class EvolveSnake:
         self.layers = LAYERS
         self.weights = weights
         if self.weights is None:
-            print('No weights')
             self.weights = [2*WSPREAD*np.random.random((size, self.layers[i + 1])) - WSPREAD
                             for i, size in enumerate(self.layers[:-1])]
 
@@ -59,9 +58,9 @@ class EvolveSnake:
         """
         head_env = tf.placeholder(PRECISION, (None, self.layers[0]))
         w1 = tf.Variable(self.weights[0], name='hidden_weights1')
-        h1 = tf.nn.relu(tf.matmul(head_env, w1), name='hidden_layer1')
+        h1 = tf.nn.tanh(tf.matmul(head_env, w1), name='hidden_layer1')
         w2 = tf.Variable(self.weights[1], name='hidden_weights2')
-        output_layer = tf.nn.relu(tf.matmul(h1, w2), name='output')
+        output_layer = tf.nn.tanh(tf.matmul(h1, w2), name='output')
         action = tf.argmax(tf.nn.softmax(output_layer), 1)
         return head_env, action
 
@@ -75,7 +74,6 @@ class EvolveSnake:
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             act = sess.run(action, {head_env: [np.append(self.get_head_env(), 1)]})
-
         return act
 
     def get_head_env(self, sight=1):
@@ -268,6 +266,7 @@ def replay_snake(snake_file, individual=0):
 
     weights = load_snake(snake_file)[individual][0]
     player = EvolveSnake(Snake(), weights)
+    print(weights)
     game = Snake()
 
     def step():
