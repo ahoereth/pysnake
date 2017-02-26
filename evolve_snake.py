@@ -13,16 +13,17 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from snake import Snake
+from snake import FOOD
 from snake_ui import SnakeUI
 
 
-MAX_GAME_STEPS = 200
-MAX_INDIVIDUALS = 200
-MAX_GENERATIONS = 1000  # 00
+MAX_GAME_STEPS = 300
+MAX_INDIVIDUALS = 300
+MAX_GENERATIONS = 10000  # 00
 
-LAYERS = [4 + 1, 5, Snake.directions]
+LAYERS = [4 + 1, 8, Snake.directions]
 
-WSPREAD = 2
+WSPREAD = 3  # new weights are randomly drawn between -WSPREAD and WSPREAD
 MUTATIONRATE = 0.001
 KEEP = 10  # The permutation of this is also kept in the 'children'
 
@@ -31,11 +32,11 @@ PRECISION = tf.float64
 
 CKPTNAME = 'evo_snake-'
 
-# perf = lambda x: 20*x[1] + np.sqrt(x[2])
-perf = lambda x: x[1] + x[2]
+perf = lambda x: 20*x[1] + x[2]
 
 
 class EvolveSnake:
+
     def __init__(self, snake, weights=None):
         """
         Initializes the EvolutionSnake.
@@ -73,17 +74,19 @@ class EvolveSnake:
         head_env, action = self.init_network()
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            act = sess.run(action, {head_env: [np.append(self.get_head_env(), 1)]})
+            act = sess.run(action, {head_env: self.get_head_env()})
         return act
 
     def get_head_env(self, sight=1):
         """
-        Gives the flattened environment around the snakehead.
+        Gives the flattened environment around the snakehead plus the distance to the food
+        token.
 
         :param sight: currently only 1 is supported so direct neighbors
-        :return: the 4 neighborhood in flattened form
+        :return: the 4 neighborhood in flattened form + distance to food
         """
         hposx, hposy = self.snake.head
+        foodx, foody = np.where(self.snake.board == FOOD)
 
         x_ulimit = hposx < self.snake.size - 1
         y_ulimit = hposy < self.snake.size - 1
@@ -93,7 +96,8 @@ class EvolveSnake:
         res = np.array([self.snake.board[hposx + 1 if x_ulimit else 0, hposy],
                        self.snake.board[hposx - 1 if x_llimit else 0, hposy],
                        self.snake.board[hposx, hposy + 1 if y_ulimit else 0],
-                       self.snake.board[hposx, hposy - 1 if y_llimit else 0]])
+                       self.snake.board[hposx, hposy - 1 if y_llimit else 0],
+                       np.max(np.array([np.abs(hposx-foodx), np.abs(hposy-foody)]))]).reshape((1, 5))
 
         return res
 
@@ -104,7 +108,7 @@ class EvolveSnake:
             sess.run(tf.global_variables_initializer())
             for i in range(MAX_GAME_STEPS):
                 act = sess.run(action,
-                               {head_env: [np.append(self.get_head_env(), 1)]})
+                               {head_env: self.get_head_env()})
                 if self.snake.step(act) == -1:
                     break
 
@@ -112,6 +116,7 @@ class EvolveSnake:
 
 
 class SnakeTrainer:
+
     def generate_snakes(self, number_or_weights):
         """
         This function generates Snakes with random or predefined weights.
@@ -265,13 +270,13 @@ def replay_snake(snake_file, individual=0):
     """
 
     weights = load_snake(snake_file)[individual][0]
-    player = EvolveSnake(Snake(), weights)
-    print(weights)
     game = Snake()
+    player = EvolveSnake(game, weights)
 
     def step():
         ret = game.step(player.get_action())
         if ret:
+            print('Your highscore was {} in {} steps'.format(game.highscore, game.steps))
             print('You {}'.format('win' if ret > 0 else 'lose'))
             return 0
 
@@ -302,7 +307,6 @@ def main(args):
                 save_progress(results_sorted, generation=i, print_c=True)
                 # always save the best per generation
                 save_snake(results_sorted, keep=1, generation=i)
-                # replay_controller(results_sorted[0][0])
 
         save_snake(results_sorted, keep=1, generation='LAST')
 

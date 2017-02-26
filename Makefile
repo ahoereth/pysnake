@@ -9,3 +9,6 @@ q:
 
 human:
 	for i in $$(seq 1 4); do python human_snake.py --store documentation/humans > /dev/null ; done
+
+evo%:
+	python evolve_snake.py play evo_snake-$*.np
