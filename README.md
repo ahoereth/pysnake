@@ -6,8 +6,10 @@ We implement a simple snake game and different playing strategies:
 
 - **Human controlled**: `python human_snake.py [--store subjectID]` runs the snake to be controlled with the arrow keys. Supply a subject ID to store the score in `participant[subjectID].csv`. If no ID but `--store` is supplied, it is stored in `participant_unspecified.csv`, to not lose it.
 - **Systematic**: `python systematic_snake.py [--store]` runs the systematic snake. Supply `--store` to store the result into `systematic.csv`.
-- **Q-Learning**: `python q_snake.py` -- details follow
-- **Evolve**:Use `python evolve_snake.py train` if you want to start a new training session with the parameters defined in the class or use `python evolve_snake.py play <file>.np` to replay a given snake network with the correct number of weights.
+- **Q-Learning**:
+  - `python q_snake.py train TARGET_CHECKPOINT_FOLDER`
+  - `python q_snake.py test CHECKPOINT_PATH` e.g. `python q_snake.py test ckpts/q_snake-20170218-001217-100000`
+- **Evolve**: Use `python evolve_snake.py train` if you want to start a new training session with the parameters defined in the class or use `python evolve_snake.py play <file>.np` to replay a given snake network with the correct number of weights.
 
 For the accompanying project report, check [overleaf](https://www.overleaf.com/8169167cgrvhvrwfbqs).
 
@@ -30,6 +32,10 @@ To aggregate n runs of data of the systematic snake, run:
 
     make sys n=100
     make sys n=1000
+
+Similarily, for collecting q snake data, run:
+
+    make q n=100 p=ckpts/q_snake-20170218-001217-100000
 
 To run a participant, just run:
 
