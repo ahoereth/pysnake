@@ -4,10 +4,10 @@ This is a project to accompany the course "Implementing Artificial Neural Networ
 
 We implement a simple snake game and different playing strategies:
 
-- Human controlled: `python human_snake.py [--store subjectID]` runs the snake to be controlled with the arrow keys. Supply a subject ID to store the score in `participant[subjectID].csv`. If no ID but `--store` is supplied, it is stored in `participant_unspecified.csv`, to not lose it.
-- Systematic: `python systematic_snake.py [--store]` runs the systematic snake. Supply `--store` to store the result into `systematic.csv`.
-- Q-Learning: `python q_snake.py` -- details follow
-- Evolve: `python evolve_snake.py` -- details follow
+- **Human controlled**: `python human_snake.py [--store subjectID]` runs the snake to be controlled with the arrow keys. Supply a subject ID to store the score in `participant[subjectID].csv`. If no ID but `--store` is supplied, it is stored in `participant_unspecified.csv`, to not lose it.
+- **Systematic**: `python systematic_snake.py [--store]` runs the systematic snake. Supply `--store` to store the result into `systematic.csv`.
+- **Q-Learning**: `python q_snake.py` -- details follow
+- **Evolve**:Use `python evolve_snake.py train` if you want to start a new training session with the parameters defined in the class or use `python evolve_snake.py play <file>.np` to replay a given snake network with the correct number of weights.
 
 For the accompanying project report, check [overleaf](https://www.overleaf.com/8169167cgrvhvrwfbqs).
 
