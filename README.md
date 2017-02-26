@@ -11,7 +11,7 @@ We implement a simple snake game and different playing strategies:
   - `python q_snake.py test CHECKPOINT_PATH` e.g. `python q_snake.py test ckpts/q_snake-20170218-001217-100000`
 - **Evolve**: Use `python evolve_snake.py train` if you want to start a new training session with the parameters defined in the class or use `python evolve_snake.py play <file>.np` to replay a given snake network with the correct number of weights.
 
-For the accompanying project report, check [overleaf](https://www.overleaf.com/8169167cgrvhvrwfbqs).
+For the accompanying project report, check the documentation folder.
 
 
 ## Videos
