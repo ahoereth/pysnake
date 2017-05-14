@@ -144,26 +144,20 @@ class Q_Snake:
                     train_states = []
                     train_q_targets = []
                     samples = np.random.permutation(len(memory))[:BATCHSIZE]
-                    for i in samples:
-                        diff_state, action, reward, diff_state_new = memory[i]
-                        q, = self.session.run(self.graph.q, {
-                            self.graph.x: [diff_state],
-                        })
-                        q_max, = self.session.run(self.graph.q_max, {
-                            self.graph.x: [diff_state_new],
-                        })
-
-                        if reward == -1:  # terminal state
-                            q[action] = -1
-                        else:
-                            q[action] = reward + (Q_DECAY * q_max)
-
-                        train_states.append(diff_state)
-                        train_q_targets.append(q)
+                    batch = [memory[i] for i in samples]
+                    states, actions, rewards, states_ = zip(*batch)
+                    qs = self.session.run(self.graph.q, {
+                        self.graph.x: states,
+                    })
+                    max_qs = self.session.run(self.graph.q_max, {
+                        self.graph.x: states_,
+                    })
+                    qs[np.arange(BATCHSIZE), actions] = rewards + \
+                        Q_DECAY * max_qs * rewards != -1
 
                     self.session.run(self.graph.train, {
-                        self.graph.x: train_states,
-                        self.graph.q_target: train_q_targets,
+                        self.graph.x: states,
+                        self.graph.q_target: qs,
                     })
 
                 # Exit game loop if game ended.
